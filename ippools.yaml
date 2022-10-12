@@ -1,0 +1,58 @@
+apiVersion: projectcalico.org/v3 
+kind: IPPool
+metadata:
+  name: pool10 
+spec:
+  cidr: 172.16.10.0/24
+  blockSize: 24
+  ipipMode: CrossSubnet
+  natOutgoing: true
+  disabled: false
+  nodeSelector: kubernetes.io/hostname == 'k8scontrol01.f5.local'
+---
+apiVersion: projectcalico.org/v3 
+kind: IPPool
+metadata:
+  name: pool11 
+spec:
+  cidr: 172.16.11.0/24
+  blockSize: 24
+  ipipMode: CrossSubnet
+  natOutgoing: true
+  disabled: false
+  nodeSelector: kubernetes.io/hostname == 'k8sworker01.f5.local'
+---
+apiVersion: projectcalico.org/v3 
+kind: IPPool
+metadata:
+  name: pool12 
+spec:
+  cidr: 172.16.12.0/24
+  blockSize: 24
+  ipipMode: CrossSubnet
+  natOutgoing: true
+  disabled: false
+  nodeSelector: kubernetes.io/hostname == 'k8sworker02.f5.local'
+---
+apiVersion: projectcalico.org/v3 
+kind: IPPool
+metadata:
+  name: pool13 
+spec:
+  cidr: 172.16.13.0/24
+  blockSize: 24
+  ipipMode: CrossSubnet
+  natOutgoing: true
+  disabled: false
+  nodeSelector: kubernetes.io/hostname == 'k8sworker03.f5.local'
+---
+apiVersion: projectcalico.org/v3 
+kind: IPPool
+metadata:
+  name: pool53dns 
+spec:
+  cidr: 172.16.53.0/30
+  blockSize: 30
+  ipipMode: CrossSubnet
+  natOutgoing: true
+  disabled: false

@@ -1,0 +1,47 @@
+apiVersion: projectcalico.org/v3 
+kind: BGPPeer
+metadata:
+  name: bgppeer-global-k8scontrol01 
+spec:
+  peerIP: 10.1.1.6
+  asNumber: 64512 
+---
+apiVersion: projectcalico.org/v3 
+kind: BGPPeer
+metadata:
+  name: bgppeer-global-k8sworker01 
+spec:
+  peerIP: 10.1.1.7
+  asNumber: 64512 
+---
+apiVersion: projectcalico.org/v3 
+kind: BGPPeer
+metadata:
+  name: bgppeer-global-k8sworker02
+spec:
+  peerIP: 10.1.1.8
+  asNumber: 64512 
+---
+apiVersion: projectcalico.org/v3 
+kind: BGPPeer
+metadata:
+  name: bgppeer-global-k8sworker03
+spec:
+  peerIP: 10.1.1.9
+  asNumber: 64512 
+---
+apiVersion: projectcalico.org/v3 
+kind: BGPPeer
+metadata:
+  name: bgppeer-global-nginxedge01 
+spec:
+  peerIP: 10.1.1.4
+  asNumber: 64512
+---
+apiVersion: projectcalico.org/v3 
+kind: BGPPeer
+metadata:
+  name: bgppeer-global-nginxedge02 
+spec:
+  peerIP: 10.1.1.5
+  asNumber: 64512
