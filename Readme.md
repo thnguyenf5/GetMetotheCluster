@@ -1,16 +1,14 @@
 # Get me to the Cluster Lab - NGINX+ Ingress Controllers + NGINX+ Edge Servers
-> This is a lab environment to demonstrate the configuration and setup of a Kubernetes Cluster, Calico CNI, NGINX+ L4 Edge Servers, and NGINX+ Ingress Controllers. This lab environment is loosely based on the whitepaper [Get me to the Cluster] (https://www.nginx.com/resources/library/get-me-to-the-cluster/).  
-
-
+> This is a lab environment to demonstrate the configuration and setup of a Kubernetes Cluster, Calico CNI, NGINX+ L4 Edge Servers, and NGINX+ Ingress Controllers. This lab environment is loosely based on the whitepaper https://www.nginx.com/resources/library/get-me-to-the-cluster/.  
 
 Lab Details
-- 10.1.1.4 nginxedge01.f5.local 
-- 10.1.1.5 nginxedge02.f5.local 
-- 10.1.1.6 nginxedge03.f5.local
-- 10.1.1.7 k8scontrol01.f5.local 
-- 10.1.1.8 k8sworker01.f5.local 
-- 10.1.1.9 k8sworker02.f5.local 
-- 10.1.1.10 k8sworker03.f5.local 
+- 10.1.1.4 - nginxedge01.f5.local 
+- 10.1.1.5 - nginxedge02.f5.local 
+- 10.1.1.6 - nginxedge03.f5.local
+- 10.1.1.7 - k8scontrol01.f5.local 
+- 10.1.1.8 - k8sworker01.f5.local 
+- 10.1.1.9 - k8sworker02.f5.local 
+- 10.1.1.10 - k8sworker03.f5.local 
 
 - user: user01
 - pass: f5agility!
@@ -24,20 +22,20 @@ Additional changes that were made from the white paper:
 
 ## Table of Contents
 
-- [K8s control node initialization] (#K8s initialization)
-- [Calico installation] (#Calico installation)
-- [Add K8s worker nodes to cluster] ()
-- [Calico iBGP configuration] (#Calico iBGP configuration)
-- [NGINX+ Ingress Controller deployment] (#NGINX+ Ingress Controller deployment)
-- [NGINX+ installation] (#NGINX+ installation)
-- [FRR installation] (#FRR installation)
-- [FRR iBGP configuration] (#FRR iBGP configuration)
-- [iBGP testing] (#iBGP testing)
-- [NGINX+ Edge DNS resolution] (#NGINX+ Edge DNS resolution)
-- [NGINX+ Edge L4 configuration] (#NGINX+ Edge L4 configuration)
-- [NGINX+ HA configurations] (#NGINX+ HA configurations)
-- [Deploy an App] (#Deploy an App)
-- [Map an App to NGINX+ Ingress Controller] (#Map an App to NGINX+ Ingress Controller)
+- [K8s control node initialization](#K8s Control Node initialization)
+- [Calico installation](#Calico installation)
+- [Add K8s worker nodes to cluster](#Worker Nodes K8s initilization)
+- [Calico iBGP configuration](#Calico iBGP configuration)
+- [NGINX+ Ingress Controller deployment](#NGINX+ Ingress Controller deployment)
+- [NGINX+ installation](#NGINX+ installation)
+- [FRR installation](#FRR installation)
+- [FRR iBGP configuration](#FRR iBGP configuration)
+- [iBGP testing](#iBGP testing)
+- [NGINX+ Edge DNS resolution](#NGINX+ Edge DNS resolution)
+- [NGINX+ Edge L4 configuration](#NGINX+ Edge L4 configuration)
+- [NGINX+ HA configurations](#NGINX+ HA configurations)
+- [Deploy an App](#Deploy an App)
+- [Map an App to NGINX+ Ingress Controller](#Map an App to NGINX+ Ingress Controller)
 
 ---
 ## K8s installation
