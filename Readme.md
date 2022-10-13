@@ -544,12 +544,46 @@ exit
 6. Repeat BGP configurations step on nginxedge03.f5.local.  Be sure to modify the bgp router-id IP address to 10.1.1.6 and include nginxedge01 and nginxedge02 as peers.
 7. Upon completion of this section, the bgp configurations should show all of the NGINX+ edge and K8s nodes connected via BGP.  
 ## NGINX+_Edge_DNS_resolution
-> In this section, you will setup DNS resolution on the NGINX+ Edge servers to utilize the internal DNS core-dns solution.  
+> In this section, you will setup DNS resolution on the NGINX+ Edge servers to utilize the internal DNS core-dns solution. As part of this lab, we will be advertising the service IP versus the individual pod endpoint ips as shown in the whitepaper. Additional documentation can be found here:
+- https://projectcalico.docs.tigera.io/networking/advertise-service-ips
 1. Log into k8scontrol01.f5.local.
 2. Describe the kube-dns service to get IP address information.  Note the Service IP address and the pod endpoint IP addresses.
 ```shell
 kubectl describe svc kube-dns -n kube-system
 ```
+3. Update the existing bgpConfiguration.yaml manifest to add advertisement of the ServiceClusterIP. Below is an example of how to add a service IP address of 10.96.0.10/32.
+```shell
+apiVersion: projectcalico.org/v3
+kind: BGPConfiguration
+metadata:
+  name: default
+spec:
+  logSeverityScreen: Info
+  nodeToNodeMeshEnabled: true
+  asNumber: 64512
+  serviceClusterIPs:
+  - cidr: 10.96.0.10/32
+```
+4. Log into nginxedge01.f5.local and edit the DNS configuration to add the NGINX Edge servers.
+```shell
+sudo nano /etc/rsolv.conf
+```
+5. Add the service IP address of KUBE-DNS and the domains.  Add the following:
+```shell
+nameserver 10.96.0.10   #kube-dns service IP address
+search . cluster.local svc.cluster.local
+```
+6. Execute multiple ping test to from NGINX Edge server ensure different pod IPs of the NGINX+ Ingress controllers.
+```shell
+ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
+ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
+ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
+ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
+ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
+```
+## NGINX+_Edge_L4_configuration
 
 
+
+## NGINX+_HA_configurations
 
