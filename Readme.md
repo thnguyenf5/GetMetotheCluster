@@ -18,17 +18,17 @@ Additional changes that were made from the white paper:
 - FRR routing package was used instead of Quagga
 - 10.1.1.0/24 is the underlay network
 - 172.16.1.0/24 will by the POD network to be advertised via iBGP
-- Additional DNS resiliency was added by advertising a single /32 route for the KUBE-DNS service instead of the individual kube-dns pod IPs
-- In this lab, we will not be utilizing the IP Pools functinonality of the whitepaper.
+- Additional DNS resiliency was added by advertising a single /32 route for the KUBE-DNS service instead using the individual kube-dns pod IPs in the resolv.conf files.
+- In this lab, we will not be utilizing the IP Pools functionality of the whitepaper.
 
 
 ## Table of Contents
 - [K8s control node initialization](#K8s_Installation)
 - [Calico installation](#Calico_Installation)
-- [Add K8s worker nodes to cluster](#Worker_Nodes_Initilization)
+- [Add K8s worker nodes to cluster](#Worker_Nodes_Initialization)
 - [Calico iBGP configuration](#Calico_iBGP_configuration)
 - [NGINX+ Ingress Controller deployment](#NGINX+_Ingress_Controller_deployment)
-- [NGINX+ installation](#NGINX+_installation)
+- [NGINX+ Edge installation](#NGINX+_Edge_installation)
 - [FRR installation](#FRR_installation)
 - [FRR iBGP configuration](#FRR_iBGP_configuration)
 - [iBGP testing](#iBGP_testing)
@@ -51,14 +51,14 @@ su - user01
 sudo kubeadm config images pull
 sudo kubeadm init --control-plane-endpoint=k8scontrol01.f5.local --pod-network-cidr=172.16.1.0/24
 ```
-4. Note the output of k8s intialization.  Copy to a seperate file to notate how to add additional worker nodes to the K8s cluster.  The worker nodes output will be required in a later step in the lab.
+4. Note the output of k8s intialization.  Copy the text output to a seperate file on how to add additional worker nodes to the K8s cluster.  The worker nodes output will be required in a later step in the lab.
 5. Create kubernetes directories in user01 folder
 ```shell
 mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
-6. Confirm cluster intallation
+6. Confirm cluster installation
 ```shell
 kubectl cluster-info
 kubectl get nodes
@@ -66,7 +66,7 @@ kubectl get nodes
 
 ---
 ## Calico_Installation
-During this section, you will be installing Calico as the CNI.  You will also install Calicoctl. Additional Documentation:
+> During this section, you will be installing Calico as the K8s CNI.  You will also install Calicoctl. Additional Documentation:
 - https://projectcalico.docs.tigera.io/getting-started/kubernetes/quickstart
 - https://projectcalico.docs.tigera.io/maintenance/clis/calicoctl/install
 
@@ -131,16 +131,16 @@ sudo calicoctl node status
 ```shell
 cd /home/user01
 ```
-## Worker_Nodes_Initilization
+## Worker_Nodes_Initialization
 > During this section, you will initialize add the worker nodes to K8's cluster.
 1. Log into k8sworker01.f5.local via UDF web shell
 2. As root user, add the worker node to the cluster using the output from K8s init command. 
-3. Sample code - This will NOT be the same that you will need to enter
+3. Sample code - This will NOT be the same that you will enter
 ```shell
 kubeadm join k8scontrol01.f5.local:6443 --token 4fpx9j.rum6ldoc63t3p0gy \
         --discovery-token-ca-cert-hash sha256:5990a4cb02eea640c88b3c764bd452b932d1228380f22368bc48eff439cd7469 
 ```
-4. Repeat this process on the remain worker nodes k8sworker02.f5.local and k8sworker3.f5.local 
+4. Repeat this process on the remainaing worker nodes k8sworker02.f5.local and k8sworker3.f5.local 
 5. Confirm status of K8s cluster by switching to k8scontrol01.f5.local web shell
 ```shell
 kubectl get nodes -o wide
@@ -166,7 +166,6 @@ spec:
 3. Apply the bgp configurations.
 ```shell
 calicoctl create -f bgpConfiguration.yaml
-calicoctl get bgpConfiguration
 ```
 4. Create bgppeers.yaml file
 ```shell
@@ -237,8 +236,9 @@ calicoctl create -f bgppeers.yaml
 7. Get BGP configurations. (NOTE: the NGINX+ Edge servers will be in a connection refused state.  You will configure the BGP on the Edge servers later in the lab.)
 ```shell
 sudo calicoctl node status
+calicoctl get bgpPeer
+calicoctl get bgpConfiguration
 ```
-
 ## NGINX+_Ingress_Controller_deployment
 > In this section, you will deploy NGINX+ Ingress Controller via a manifest using a JWT token as a deployment.  In order to get your JWT token, log into your myF5 portal and download your JWT token entitlement. Additional documentation can be found here: 
 - https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-manifests/
@@ -267,7 +267,7 @@ kubectl apply -f common/crds/k8s.nginx.org_transportservers.yaml
 kubectl apply -f common/crds/k8s.nginx.org_policies.yaml
 kubectl apply -f common/crds/k8s.nginx.org_globalconfigurations.yaml
 ```
-5. Create docker-registry secret on the cluster using the JWT token from your myF5 account. (Note besure to replace the <JWT Token> with your JWT token information)
+5. Create docker-registry secret on the cluster using the JWT token from your myF5 account. (NOTE: Replace the < JWT Token > with your JWT token information)
 ```shell
 kubectl create secret docker-registry regcred --docker-server=private-registry.nginx.com --docker-username=<JWT Token> --docker-password=none -n nginx-ingress
 ```
@@ -372,11 +372,11 @@ kubectl apply -f deployment/nginx-plus-ingress.yaml
 ```shell
 kubectl get pods --namespace=nginx-ingress
 ```
-11. Create a service of the Ingress Controller pods
+11. Create a service for the Ingress Controller pods
 ```shell
 nano nginx-ingress-svc.yaml
 ```
-12. Edit contents of nginx-ingress-svc.yaml file to be a headless service utilizing ports 80 and 443
+12. Create the nginx-ingress-svc.yaml service to be a headless service utilizing ports 80 and 443 inside the nginx-ingress namespace
 ```shell
 apiVersion: v1
 kind: Service
@@ -398,7 +398,158 @@ spec:
   selector:
     app: nginx-ingress
 ```
-13. Create service using the nginx-ingress-svc manifest
+13. Deploy the service via manifest 
 ```shell
 kubectl apply -f nginx-ingress-svc.yaml 
 ```
+## NGINX+_Edge_installation
+> In this section, you will be installing NGINX+ on the edge servers outside of the K8's cluster.  These edge servers will be responible for L4 Load Balancing to the K8's clusters.  In order to complete this section, log into your myF5.com account and download the cert and key for NGINX+.  Additional documentation can be found here:
+- https://docs.nginx.com/nginx/admin-guide/installing-nginx/installing-nginx-plus/
+1. Log into nginxedge01.f5.local as user01
+```shell
+su - user01
+```
+2. Create the /etc/ssl/nginx directory
+```shell
+sudo mkdir /etc/ssl/nginx
+cd /etc/ssl/nginx
+```
+3. Create nginx-repo.crt
+```shell
+sudo nano nginx-repo.crt
+```
+4. Paste contents of the crt from your nginx-repo.crt downloaded from myF5 portal.
+5. Create nginx-repo.key
+```shell
+sudo nano nginx-repo.key
+```
+6. Paste contents of key from your nginx-repo.key downloaded from myF5 portal.
+7. switch back to home directory
+```shell
+cd /home/user01
+```
+8. Install the prerequisites packages.
+```shell
+sudo apt-get install apt-transport-https lsb-release ca-certificates wget gnupg2 ubuntu-keyring
+```
+9. Download and add NGINX signing key and App Protect security updates signing key:
+```shell
+wget -qO - https://cs.nginx.com/static/keys/nginx_signing.key | gpg --dearmor | sudo tee /usr/share/keyrings/nginx-archive-keyring.gpg >/dev/null
+wget -qO - https://cs.nginx.com/static/keys/app-protect-security-updates.key | gpg --dearmor | sudo tee /usr/share/keyrings/app-protect-security-updates.gpg >/dev/null
+```
+10. Add the NGINX Plus repository.
+```shell
+printf "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] https://pkgs.nginx.com/plus/ubuntu `lsb_release -cs` nginx-plus\n" | sudo tee /etc/apt/sources.list.d/nginx-plus.list
+```
+11. Download the nginx-plus apt configuration to /etc/apt/apt.conf.d:
+```shell
+sudo wget -P /etc/apt/apt.conf.d https://cs.nginx.com/static/files/90pkgs-nginx
+```
+12. Update the repository information:
+```shell
+sudo apt-get update
+```
+13. Install the nginx-plus package. 
+```shell
+sudo apt-get install -y nginx-plus
+```
+14. Check the nginx binary version to ensure that you have NGINX Plus installed correctly:
+```shell
+nginx -v
+```
+15. Repeat NGINX+ installation on nginxedge02.f5.local
+16. Repeat NGINX+ installation on nginxedge03.f5.local 
+
+#FRR_installation
+> In this section, you will install FRR package as to enable BGP functionality on the NGINX+ Edge servers.  Additional documentation can be found here: 
+-  https://docs.frrouting.org/projects/dev-guide/en/latest/building-frr-for-ubuntu2004.html
+1. Install dependencies
+```shell
+sudo apt-get install \
+   git autoconf automake libtool make libreadline-dev texinfo \
+   pkg-config libpam0g-dev libjson-c-dev bison flex \
+   libc-ares-dev python3-dev python3-sphinx \
+   install-info build-essential libsnmp-dev perl \
+   libcap-dev python2 libelf-dev libunwind-dev
+```
+2. Ubuntu 20+ no longer installs python 2.x, so it must be installed explicitly. Create symlink named /usr/bin/python pointing at /usr/bin/python3.
+```shell
+sudo ln -s /usr/bin/python /usr/bin/python
+```
+3. Install FRR package
+```shell
+sudo apt-get install frr -y
+```
+4. Enable BGP process for FRR daemons by editing the 
+```shell
+sudo systemctl stop frr
+sudo nano /etc/frr/daemons
+```
+5. Edit the file to to enable bgpd
+```shell
+bgpd=yes
+```
+6. Enable and confirm FRR service
+```shell
+sudo systemctl enable frr.service
+sudo systemctl restart frr.service
+sudo systemctl status frr
+```
+7. Repeat NGINX+ installation on nginxedge02.f5.local
+8. Repeat NGINX+ installation on nginxedge03.f5.local 
+
+#FRR_iBGP_configuration
+> In this section, you will configure iBGP on the NGINX+ Edge server and build a mesh with the K8's Calico CNI.  
+1. Log into the FRR routing shell
+```shell
+sudo vtysh
+```
+2. Configure BGP network and neighbors.
+```shell
+config t
+router bgp 64512
+bgp router-id 10.1.1.4   
+network 10.1.1.0/24
+neighbor calico peer-group
+neighbor calico remote-as 64512
+neighbor calico capability dynamic
+neighbor 10.1.1.5 peer-group calico
+neighbor 10.1.1.5 description nginxedge02
+neighbor 10.1.1.6 peer-group calico 
+neighbor 10.1.1.6 description nginxedge03
+neighbor 10.1.1.7 peer-group calico 
+neighbor 10.1.1.7 description k8scontrol01
+neighbor 10.1.1.8 peer-group calico
+neighbor 10.1.1.8 description k8sworker01
+neighbor 10.1.1.9 peer-group calico
+neighbor 10.1.1.9 description k8sworker02
+neighbor 10.1.1.10 peer-group calico
+neighbor 10.1.1.10 description k8sworker03
+exit
+exit 
+write
+```
+3. Confirm configurations
+```shell
+show running-config
+show ip bgp summary
+show bgp neighbors
+show ip route
+```
+4. Exit vtysh shell
+```shell
+exit
+```
+5. Repeat BGP configurations step on nginxedge02.f5.local.  Be sure to modify the bgp router-id IP address to 10.1.1.5 and include nginxedge01 and nginxedge03 as peers.
+6. Repeat BGP configurations step on nginxedge03.f5.local.  Be sure to modify the bgp router-id IP address to 10.1.1.6 and include nginxedge01 and nginxedge02 as peers.
+7. Upon completion of this section, the bgp configurations should show all of the NGINX+ edge and K8s nodes connected via BGP.  
+## NGINX+_Edge_DNS_resolution
+> In this section, you will setup DNS resolution on the NGINX+ Edge servers to utilize the internal DNS core-dns solution.  
+1. Log into k8scontrol01.f5.local.
+2. Describe the kube-dns service to get IP address information.  Note the Service IP address and the pod endpoint IP addresses.
+```shell
+kubectl describe svc kube-dns -n kube-system
+```
+
+
+
