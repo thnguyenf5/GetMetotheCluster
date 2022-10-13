@@ -66,7 +66,7 @@ kubectl get nodes
 
 ---
 ## Calico_Installation
-> During this section, you will be installing Calico as the K8s CNI.  You will also install Calicoctl. Additional Documentation:
+> During this section, you will be installing Calico as the K8s CNI.  You will also install Calicoctl. Additional documentation can be found here: 
 - https://projectcalico.docs.tigera.io/getting-started/kubernetes/quickstart
 - https://projectcalico.docs.tigera.io/maintenance/clis/calicoctl/install
 
@@ -132,10 +132,10 @@ sudo calicoctl node status
 cd /home/user01
 ```
 ## Worker_Nodes_Initialization
-> During this section, you will initialize add the worker nodes to K8's cluster.
+> During this section, you will add the worker nodes to K8's cluster.
 1. Log into k8sworker01.f5.local via UDF web shell
 2. As root user, add the worker node to the cluster using the output from K8s init command. 
-3. Sample code - This will NOT be the same that you will enter
+3. Sample command - This will NOT be the same command that you will enter
 ```shell
 kubeadm join k8scontrol01.f5.local:6443 --token 4fpx9j.rum6ldoc63t3p0gy \
         --discovery-token-ca-cert-hash sha256:5990a4cb02eea640c88b3c764bd452b932d1228380f22368bc48eff439cd7469 
@@ -152,7 +152,7 @@ kubectl get pods --all-namespaces -o wide
 ```shell
 nano bgpConfiguration.yaml
 ```
-2. Edit the contents of the yaml file to your environment details.  In this lab we are utilizing the default ASN number - 64512
+2. Edit the contents of the yaml file to your environment details.  In this lab we are utilizing Calico's default ASN number - 64512
 ```shell
 apiVersion: projectcalico.org/v3
 kind: BGPConfiguration
@@ -233,7 +233,7 @@ spec:
 ```shell
 calicoctl create -f bgppeers.yaml
 ```
-7. Get BGP configurations. (NOTE: the NGINX+ Edge servers will be in a connection refused state.  You will configure the BGP on the Edge servers later in the lab.)
+7. Get BGP configurations. (NOTE: the NGINX+ Edge servers will be in a connection refused state. This is because the NGINX+ Edge servers have not yet been configured with BGP. ßYou will configure the BGP on the Edge servers later in the lab.)
 ```shell
 sudo calicoctl node status
 calicoctl get bgpPeer
@@ -267,7 +267,7 @@ kubectl apply -f common/crds/k8s.nginx.org_transportservers.yaml
 kubectl apply -f common/crds/k8s.nginx.org_policies.yaml
 kubectl apply -f common/crds/k8s.nginx.org_globalconfigurations.yaml
 ```
-5. Create docker-registry secret on the cluster using the JWT token from your myF5 account. (NOTE: Replace the < JWT Token > with your JWT token information)
+5. Create docker-registry secret on the cluster using the JWT token from your myF5 account. (NOTE: Replace the < JWT Token > with the JWT token information from your myF5.com portal)
 ```shell
 kubectl create secret docker-registry regcred --docker-server=private-registry.nginx.com --docker-username=<JWT Token> --docker-password=none -n nginx-ingress
 ```
@@ -582,8 +582,21 @@ ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
 ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
 ```
 ## NGINX+_Edge_L4_configuration
-
+> Additional documentation can be found here: 
+- https://docs.nginx.com/nginx/admin-guide/load-balancer/tcp-udp-load-balancer/
 
 
 ## NGINX+_HA_configurations
+> Additional documentation can be found here: 
+- https://docs.nginx.com/nginx/admin-guide/high-availability 
 
+1. Configure Config Sync
+>
+- https://docs.nginx.com/nginx/admin-guide/high-availability/configuration-sharing/
+
+
+## Deploy_an_App
+> 
+- https://docs.nginx.com/nginx-ingress-controller/configuration/virtualserver-and-virtualserverroute-resources/
+
+## Expose_an_App_with_NGINX+_Ingress_Controller
