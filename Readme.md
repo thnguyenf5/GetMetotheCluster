@@ -13,6 +13,7 @@ Lab Details
 - user: user01
 - pass: f5agility!
 
+- UDF blueprint has prerequisite software like containerd and kubectl/kubeadmin/kubelet packages.  This lab also uses local  hostfile for DNS resolution.  UDF blueprint is listed as "NGINX Ingress Controller - Calico CNI - Get me to the Cluster"
 Additional changes that were made from the white paper:
 - Ubuntu 22.04 LTS 
 - FRR routing package was used instead of Quagga
@@ -48,6 +49,7 @@ su - user01
 ```
 3. Initialize kubernentes cluster
 ```shell
+echo 1 > /proc/sys/net/ipv4/ip_forward
 sudo kubeadm config images pull
 sudo kubeadm init --control-plane-endpoint=k8scontrol01.f5.local --pod-network-cidr=172.16.1.0/24
 ```
@@ -135,13 +137,17 @@ cd /home/user01
 > During this section, you will add the worker nodes to K8's cluster.
 1. Log into k8sworker01.f5.local via UDF web shell
 2. As root user, add the worker node to the cluster using the output from K8s init command. 
-3. Sample command - This will NOT be the same command that you will enter
+3. Update IP forward setting
+```shell
+echo 1 > /proc/sys/net/ipv4/ip_forward
+```
+4. Sample command - This will NOT be the same command that you will enter
 ```shell
 kubeadm join k8scontrol01.f5.local:6443 --token 4fpx9j.rum6ldoc63t3p0gy \
         --discovery-token-ca-cert-hash sha256:5990a4cb02eea640c88b3c764bd452b932d1228380f22368bc48eff439cd7469 
 ```
-4. Repeat this process on the remainaing worker nodes k8sworker02.f5.local and k8sworker3.f5.local 
-5. Confirm status of K8s cluster by switching to k8scontrol01.f5.local web shell
+5. Repeat this process on the remainaing worker nodes k8sworker02.f5.local and k8sworker3.f5.local 
+6. Confirm status of K8s cluster by switching to k8scontrol01.f5.local web shell
 ```shell
 kubectl get nodes -o wide
 kubectl get pods --all-namespaces -o wide
