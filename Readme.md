@@ -13,8 +13,9 @@ Lab Details
 - user: user01
 - pass: f5agility!
 
-- UDF blueprint has prerequisite software like containerd and kubectl/kubeadmin/kubelet packages.  This lab also uses local  hostfile for DNS resolution.  UDF blueprint is listed as "NGINX Ingress Controller - Calico CNI - Get me to the Cluster"
-Additional changes that were made from the white paper:
+> UDF blueprint has prerequisite software like containerd and kubectl/kubeadmin/kubelet packages.  This lab also uses local  hostfile for DNS resolution.  UDF blueprint is listed as "NGINX Ingress Controller - Calico CNI - Get me to the Cluster"
+
+> Additional changes that were made from the white paper:
 - Ubuntu 22.04 LTS 
 - FRR routing package was used instead of Quagga
 - 10.1.1.0/24 is the underlay network
@@ -28,16 +29,16 @@ Additional changes that were made from the white paper:
 - [Calico installation](#Calico_Installation)
 - [Add K8s worker nodes to cluster](#Worker_Nodes_Initialization)
 - [Calico iBGP configuration](#Calico_iBGP_configuration)
-- [NGINX+ Ingress Controller deployment](#NGINX+_Ingress_Controller_deployment)
-- [NGINX+ Edge installation](#NGINX+_Edge_installation)
+- [NGINX+ Ingress Controller deployment](#NGINX_Ingress_Controller_deployment)
+- [NGINX+ Edge installation](#NGINX_Edge_installation)
 - [FRR installation](#FRR_installation)
 - [FRR iBGP configuration](#FRR_iBGP_configuration)
 - [iBGP testing](#iBGP_testing)
-- [NGINX+ Edge DNS resolution](#NGINX+_Edge_DNS_resolution)
-- [NGINX+ Edge L4 configuration](#NGINX+_Edge_L4_configuration)
-- [NGINX+ HA configurations](#NGINX+_HA_configurations)
+- [NGINX+ Edge DNS resolution](#NGINX_Edge_DNS_resolution)
+- [NGINX+ Edge L4 configuration](#NGINX_Edge_L4_configuration)
+- [NGINX+ HA configurations](#NGINX_HA_configurations)
 - [Deploy an App](#Deploy_an_App)
-- [Expose an app via NGINX+ Ingress Controller](#Expose_an_App_with_NGINX+_Ingress_Controller) 
+- [Expose an app via NGINX+ Ingress Controller](#Expose_an_App_with_NGINX_Ingress_Controller) 
 
 ---
 ## K8s_Installation
