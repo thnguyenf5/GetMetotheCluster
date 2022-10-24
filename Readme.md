@@ -607,7 +607,7 @@ nano arcadia-deployment.yaml
 kind: Namespace
 apiVersion: v1
 metadata:
-name: arcadia
+  name: arcadia
 ---
 ##################################################################################################
 # FILES - BACKEND
@@ -779,7 +779,7 @@ spec:
 ```
 4. Deploy and verify the pods are running.
 ```shell
-kubectl apply -f arcadia-deployment.yaml
+kubectl create -f arcadia-deployment.yaml
 kubectl get pods --arcadia
 ```
 5. Create arcadia-service.yaml to create service
@@ -876,7 +876,7 @@ spec:
 ```
 7. Verify services are running
 ```shell
-kubectl apply -f arcadia-services.yaml
+kubectl create -f arcadia-services.yaml
 kubectl get services --namespace=arcadia
 ```
 
