@@ -780,7 +780,7 @@ spec:
 4. Deploy and verify the pods are running.
 ```shell
 kubectl create -f arcadia-deployment.yaml
-kubectl get pods --arcadia
+kubectl get pods -n arcadia
 ```
 5. Create arcadia-service.yaml to create service
 ```shell
@@ -876,7 +876,7 @@ spec:
 ```
 7. Verify services are running
 ```shell
-kubectl create -f arcadia-services.yaml
+kubectl create -f arcadia-service.yaml
 kubectl get services --namespace=arcadia
 ```
 
