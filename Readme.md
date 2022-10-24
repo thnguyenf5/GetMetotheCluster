@@ -925,7 +925,7 @@ spec:
 ```
 3. Deploy and confirm VirtualServer and VirtualServceRoute resources
 ```shell
-kubectl apply -f arcadia-virtualserver.yaml
+kubectl create -f arcadia-virtualserver.yaml
 kubectl get virtualserver arcadia
 ```
 
