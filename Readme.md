@@ -261,13 +261,28 @@ git clone https://github.com/nginxinc/kubernetes-ingress.git --branch v2.3.1
 kubectl apply -f common/ns-and-sa.yaml
 kubectl apply -f rbac/rbac.yaml 
 ```
-3. Create Common Resources
+3. Modify downloaded manifest to enable NGINX+ Ingress Controller as default ingress class
+```shell
+nano common/ingress-class.yaml
+```
+4. Uncomment the annotation ingressclass.kubernetes.io/is-default-class. With this annotation set to true all the new Ingresses without an ingressClassName field specified will be assigned this IngressClass.
+```shell
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: nginx
+  annotations: 
+    ingressclass.kubernetes.io/is-default-class: "true" 
+spec:
+  controller: nginx.org/ingress-controller
+```
+5. Create Common Resources
 ```shell
 kubectl apply -f common/default-server-secret.yaml
 kubectl apply -f common/nginx-config.yaml
 kubectl apply -f common/ingress-class.yaml
 ```
-4. Create Custom Resources
+6. Create Custom Resources
 ```shell
 kubectl apply -f common/crds/k8s.nginx.org_virtualservers.yaml
 kubectl apply -f common/crds/k8s.nginx.org_virtualserverroutes.yaml
@@ -275,19 +290,19 @@ kubectl apply -f common/crds/k8s.nginx.org_transportservers.yaml
 kubectl apply -f common/crds/k8s.nginx.org_policies.yaml
 kubectl apply -f common/crds/k8s.nginx.org_globalconfigurations.yaml
 ```
-5. Create docker-registry secret on the cluster using the JWT token from your myF5 account. (NOTE: Replace the < JWT Token > with the JWT token information from your myF5.com portal)
+7. Create docker-registry secret on the cluster using the JWT token from your myF5 account. (NOTE: Replace the < JWT Token > with the JWT token information from your myF5.com portal)
 ```shell
 kubectl create secret docker-registry regcred --docker-server=private-registry.nginx.com --docker-username=<JWT Token> --docker-password=none -n nginx-ingress
 ```
-6. Confirm the details of the secret
+8. Confirm the details of the secret
 ```shell
 kubectl get secret regcred --output=yaml -n nginx-ingress
 ```
-7. Modify the NGINX+ Ingress Controller manifest
+9. Modify the NGINX+ Ingress Controller manifest
 ```shell
 nano deployment/nginx-plus-ingress.yaml
 ```
-8. Update the contents of the yaml file:
+10. Update the contents of the yaml file:
 - Increase the number of NGINX+ replicas to 3
 - Utilize the docker-registry secret create in the previous step
 - Update the container location to pull from private-registry.nginx.com
@@ -372,19 +387,19 @@ spec:
          #- -enable-prometheus-metrics
          #- -global-configuration=$(POD_NAMESPACE)/nginx-config
 ```
-9. Run NGINX+ Ingress Controller
+11. Run NGINX+ Ingress Controller
 ```shell
 kubectl apply -f deployment/nginx-plus-ingress.yaml
 ```
-10. Confirm NGINX+ Ingress Controller pods are running
+12. Confirm NGINX+ Ingress Controller pods are running
 ```shell
 kubectl get pods --namespace=nginx-ingress
 ```
-11. Create a service for the Ingress Controller pods
+13. Create a service for the Ingress Controller pods
 ```shell
 nano nginx-ingress-svc.yaml
 ```
-12. Create the nginx-ingress-svc.yaml service to be a headless service utilizing ports 80 and 443 inside the nginx-ingress namespace
+14. Create the nginx-ingress-svc.yaml service to be a headless service utilizing ports 80 and 443 inside the nginx-ingress namespace
 ```shell
 apiVersion: v1
 kind: Service
@@ -406,7 +421,7 @@ spec:
   selector:
     app: nginx-ingress
 ```
-13. Deploy the service via manifest 
+15. Deploy the service via manifest 
 ```shell
 kubectl apply -f nginx-ingress-svc.yaml 
 ```
