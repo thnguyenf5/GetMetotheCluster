@@ -643,6 +643,13 @@ spec:
         ports:
         - containerPort: 80
           protocol: TCP
+        resources:
+          limits:
+            cpu: "1"
+            memory: "100Mi"
+          requests:
+            cpu: "0.01"
+            memory: "20Mi"
 ---
 ##################################################################################################
 # MAIN
@@ -678,6 +685,13 @@ spec:
         ports:
         - containerPort: 80
           protocol: TCP
+        resources:
+          limits:
+            cpu: "1"
+            memory: "100Mi"
+          requests:
+            cpu: "0.01"
+            memory: "20Mi"
 ---
 ##################################################################################################
 # APP2
@@ -713,6 +727,13 @@ spec:
         ports:
         - containerPort: 80
           protocol: TCP
+        resources:
+          limits:
+            cpu: "1"
+            memory: "100Mi"
+          requests:
+            cpu: "0.01"
+            memory: "20Mi"
 ---
 ##################################################################################################
 # APP3
@@ -747,10 +768,18 @@ spec:
         ports:
         - containerPort: 80
           protocol: TCP
+        resources:
+          limits:
+            cpu: "1"
+            memory: "100Mi"
+          requests:
+            cpu: "0.01"
+            memory: "20Mi"
 ---
 ```
-4. Verify the pods are running.
+4. Deploy and verify the pods are running.
 ```shell
+kubectl apply -f arcadia-deployment.yaml
 kubectl get pods --arcadia
 ```
 5. Create arcadia-service.yaml to create service
@@ -847,14 +876,58 @@ spec:
 ```
 7. Verify services are running
 ```shell
+kubectl apply -f arcadia-services.yaml
 kubectl get services --namespace=arcadia
 ```
 
-
-
 ## Expose_an_App_with_NGINX+_Ingress_Controller
-
+> In the [Deploy an App](#Deploy_an_App) section, you deployed the Arcadia finance app with a ClusterIP servicetype.  You will now create an Ingress for the Arcadia Application utilizing the NGINX+ Ingress controller by createing a manifest file and using VirtualServer and VirtualServerRoute Resources.  
 - https://docs.nginx.com/nginx-ingress-controller/configuration/virtualserver-and-virtualserverroute-resources/
+
+1. Create arcadia-virtualserver.yaml manifest file.
+```shell
+nano arcadia-virtualserver.yaml
+```
+2. Edit the contents of arcadia-virtualserver.yaml manifest
+```shell
+apiVersion: k8s.nginx.org/v1
+kind: VirtualServer
+metadata:
+  name: arcadia
+spec:
+  host: arcadia-finance.f5.local
+  upstreams:
+    - name: main
+      service: main
+      port: 80
+    - name: backend
+      service: backend
+      port: 80
+    - name: app2
+      service: app2
+      port: 80
+    - name: app3
+      service: app3
+      port: 80
+  routes:
+    - path: /
+      action:
+        pass: main
+    - path: /files
+      action:
+        pass: backend
+    - path: /api
+      action:
+        pass: app2
+    - path: /app3
+      action:
+        pass: app3
+```
+3. Deploy and confirm VirtualServer and VirtualServceRoute resources
+```shell
+kubectl apply -f arcadia-virtualserver.yaml
+kubectl get virtualserver arcadia
+```
 
 
 ## NGINX+_Edge_L4_configuration

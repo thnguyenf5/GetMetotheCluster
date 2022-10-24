@@ -41,6 +41,13 @@ spec:
         ports:
         - containerPort: 80
           protocol: TCP
+        resources:
+          limits:
+            cpu: "1"
+            memory: "100Mi"
+          requests:
+            cpu: "0.01"
+            memory: "20Mi"
 ---
 ##################################################################################################
 # MAIN
@@ -76,6 +83,13 @@ spec:
         ports:
         - containerPort: 80
           protocol: TCP
+        resources:
+          limits:
+            cpu: "1"
+            memory: "100Mi"
+          requests:
+            cpu: "0.01"
+            memory: "20Mi"
 ---
 ##################################################################################################
 # APP2
@@ -111,6 +125,13 @@ spec:
         ports:
         - containerPort: 80
           protocol: TCP
+        resources:
+          limits:
+            cpu: "1"
+            memory: "100Mi"
+          requests:
+            cpu: "0.01"
+            memory: "20Mi"
 ---
 ##################################################################################################
 # APP3
@@ -145,5 +166,12 @@ spec:
         ports:
         - containerPort: 80
           protocol: TCP
+        resources:
+          limits:
+            cpu: "1"
+            memory: "100Mi"
+          requests:
+            cpu: "0.01"
+            memory: "20Mi"
 ---
 
