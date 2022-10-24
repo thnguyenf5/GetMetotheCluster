@@ -589,7 +589,7 @@ spec:
 ```
 4. Log into nginxedge01.f5.local and edit the DNS configuration to add the NGINX Edge servers.
 ```shell
-sudo nano /etc/rsolv.conf
+sudo nano /etc/resolv.conf
 ```
 5. Add the service IP address of KUBE-DNS and the domains.  Add the following:
 ```shell
@@ -946,10 +946,142 @@ kubectl get virtualserver arcadia
 
 
 ## NGINX+_Edge_L4_configuration
-> Additional documentation can be found here: 
+> In this part of the lab, we will first enable the NGINX+ Live Activity Monitoring with dashboard.  We will then configure a separate conf file for the stream configurations required to allow the NGINX edge server to the the DNS resolution feature.  Additional documentation can be found here: 
 - https://docs.nginx.com/nginx/admin-guide/load-balancer/tcp-udp-load-balancer/
 
+1. Log into nginxedge01.f5.local as user01
+2. Modify the default.conf file to enable the api and dashboard
+```shell
+sudo nano /etc/nginx/conf.d/default.conf
+```
+3. Modify the following:
+- change the default server port from 80 to 8080 (This will enable us to listen on 80 for L4 LB to NGINX+ Ingress Controller)
+- Uncomment location /api/ block (Make sure to remove the two lines for IP restrictions)
+- Uncomment location = /dashboard.html block
+```shell
+server {
+    listen       8080 default_server;
+    server_name  localhost;
 
+    #access_log  /var/log/nginx/host.access.log  main;
+
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+    }
+
+    #error_page  404              /404.html;
+
+    # redirect server error pages to the static page /50x.html
+    #
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+
+    # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+    #
+    #location ~ \.php$ {
+    #    proxy_pass   http://127.0.0.1;
+    #}
+
+    # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+    #
+    #location ~ \.php$ {
+    #    root           html;
+    #    fastcgi_pass   127.0.0.1:9000;
+    #    fastcgi_index  index.php;
+    #    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
+    #    include        fastcgi_params;
+    #}
+
+    # deny access to .htaccess files, if Apache's document root
+    # concurs with nginx's one
+    #
+    #location ~ /\.ht {
+    #    deny  all;
+    #}
+
+    # enable /api/ location with appropriate access control in order
+    # to make use of NGINX Plus API
+    #
+    location /api/ {
+        api write=on;
+    }
+
+    # enable NGINX Plus Dashboard; requires /api/ location to be
+    # enabled and appropriate access control for remote access
+    #
+    location = /dashboard.html {
+        root /usr/share/nginx/html;
+    }
+}
+```
+4. Test the configuration file for syntactic validity and reload NGINX+
+```shell
+sudo nginx -t && sudo nginx -s reload
+```
+5. Test from a web browser - http://10.1.1.4:8080/dashboard.html
+
+6. Next we will create the stream configurations for the L4 LB configurations in its own folder
+```shell
+sudo mkdir /etc/nginx/stream.d
+```
+7. Create a configuration file for these dedicated NGINX+ Edge stream settings.
+```shell
+sudo nano /etc/nginx/stream.d/nginxedge.conf
+```
+8. Edit configuration file to handle traffic on port 80 and 443 with these configuration blocks:
+- Resolver directive tells NGINX which DNS servers to query every 10 seconds.  The DNS resolver metrics will be captured in the live activity dashboard
+- Zone directive collects TCP stats which will also be caputured in the TCP/UDP Upstreams tab on the live activity dashboard
+- Resolve parameter tells NGINX+ to query DNS for the list of IP addresses for the server's FQDN.
+```shell
+# NGINX edge server Layer 4 configuration file
+# Use kube-dns ClusterIP address advertised through Calico for the NGINX Plus resolver 
+# DNS query interval is 10 seconds
+
+stream {
+    log_format stream ‘$time_local $remote_addr - $server_addr - $upstream_addr’;
+    access_log /var/log/nginx/stream.log stream;
+
+    # Sample configuration for TCP load balancing 
+    upstream nginx-ingress-80 {
+    # use the kube-dns service IP address advertised through Calico for the NGINX Plus resolver
+        resolver 10.96.0.10 valid=10s status_zone=kube-dns; 
+        zone nginx_kic_80 256k;
+
+        server nginx-ingress-svc.nginx-ingress.svc.cluster.local:80 resolve;
+    }
+
+    upstream nginx-ingress-443 {
+    # use the kube-dns service IP address advertised through Calico for the NGINX Plus resolver
+        resolver 10.96.0.10 valid=10s status_zone=kube-dns; 
+        zone nginx_kic_443 256k;
+        
+        server nginx-ingress-svc.nginx-ingress.svc.cluster.local:443 resolve; 
+    }
+
+    server {
+        listen 80;
+        status_zone tcp_server_80; 
+        proxy_pass nginx-ingress-80;
+    }
+
+    server {
+        listen 443;
+        status_zone tcp_server_8443; 
+        proxy_pass nginx-ingress-443;
+    } 
+}
+```
+9. Test the configuration file for syntactic validity and reload NGINX+
+```shell
+sudo nginx -t && sudo nginx -s reload
+```
+10. Test application access
+```shell
+curl -v http://localhost/ --header 'Host:arcadia-finance.f5.local'
+```
 ## NGINX+_HA_configurations
 > Additional documentation can be found here: 
 - https://docs.nginx.com/nginx/admin-guide/high-availability 
