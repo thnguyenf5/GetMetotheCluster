@@ -35,10 +35,11 @@ Lab Details
 - [FRR iBGP configuration](#FRR_iBGP_configuration)
 - [iBGP testing](#iBGP_testing)
 - [NGINX+ Edge DNS resolution](#NGINX_Edge_DNS_resolution)
-- [NGINX+ Edge L4 configuration](#NGINX_Edge_L4_configuration)
-- [NGINX+ HA configurations](#NGINX_HA_configurations)
 - [Deploy an App](#Deploy_an_App)
 - [Expose an app via NGINX+ Ingress Controller](#Expose_an_App_with_NGINX_Ingress_Controller) 
+- [NGINX+ Edge L4 configuration](#NGINX_Edge_L4_configuration)
+- [NGINX+ HA configurations](#NGINX_HA_configurations)
+
 
 ---
 ## K8s_Installation
@@ -588,6 +589,274 @@ ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
 ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
 ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
 ```
+## Deploy_an_App
+> In this section of the lab, you will deploy an example modern application Arcadia Financial application.  This application is composed of 4 services.  Additional information can be found here:
+- https://gitlab.com/arcadia-application
+
+1. Log into k8scontrol01.f5.local.
+2. Create arcadia-deployment.yaml to deploy application via manifest
+```shell
+nano arcadia-deployment.yaml
+```
+3. Edit contents of the manifest file:
+```shell
+##################################################################################################
+# CREATE NAMESPACE - ARCADIA
+##################################################################################################
+---
+kind: Namespace
+apiVersion: v1
+metadata:
+name: arcadia
+---
+##################################################################################################
+# FILES - BACKEND
+##################################################################################################
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: arcadia
+  labels:
+    app: backend
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: backend
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: backend
+        version: v1
+    spec:
+      containers:
+      - env:
+        - name: service_name
+          value: backend
+        image: registry.gitlab.com/arcadia-application/back-end/backend:latest
+        imagePullPolicy: IfNotPresent
+        name: backend
+        ports:
+        - containerPort: 80
+          protocol: TCP
+---
+##################################################################################################
+# MAIN
+##################################################################################################
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: main
+  namespace: arcadia
+  labels:
+    app: main
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: main
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: main
+        version: v1
+    spec:
+      containers:
+      - env:
+        - name: service_name
+          value: main
+        image: registry.gitlab.com/arcadia-application/main-app/mainapp:latest
+        imagePullPolicy: IfNotPresent
+        name: main
+        ports:
+        - containerPort: 80
+          protocol: TCP
+---
+##################################################################################################
+# APP2
+##################################################################################################
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app2
+  namespace: arcadia
+  labels:
+    app: app2
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: app2
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: app2
+        version: v1
+    spec:
+      containers:
+      - env:
+        - name: service_name
+          value: app2
+        image: registry.gitlab.com/arcadia-application/app2/app2:latest
+        imagePullPolicy: IfNotPresent
+        name: app2
+        ports:
+        - containerPort: 80
+          protocol: TCP
+---
+##################################################################################################
+# APP3
+##################################################################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app3
+  namespace: arcadia
+  labels:
+    app: app3
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: app3
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: app3
+        version: v1
+    spec:
+      containers:
+      - env:
+        - name: service_name
+          value: app3
+        image: registry.gitlab.com/arcadia-application/app3/app3:latest
+        imagePullPolicy: IfNotPresent
+        name: app3
+        ports:
+        - containerPort: 80
+          protocol: TCP
+---
+```
+4. Verify the pods are running.
+```shell
+kubectl get pods --arcadia
+```
+5. Create arcadia-service.yaml to create service
+```shell
+nano arcadia-service.yaml
+```
+6. Edit contents for arcadia-service.yaml using the ClusterIP type service.
+```shell
+##################################################################################################
+# FILES - BACKEND
+##################################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: arcadia
+  labels:
+    app: backend
+    service: backend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+    name: backend-80
+  selector:
+    app: backend
+---
+##################################################################################################
+# MAIN
+##################################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: main
+  namespace: arcadia
+  labels:
+    app: main
+    service: main
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+    name: backend-80
+    name: main-80
+  selector:
+    app: main
+---
+##################################################################################################
+# APP2
+##################################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: app2
+  namespace: arcadia
+  labels:
+    app: app2
+    service: app2
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+    name: app2-80
+  selector:
+    app: app2
+---
+##################################################################################################
+# APP3
+##################################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: app3
+  namespace: arcadia
+  labels:
+    app: app3
+    service: app3
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+    name: app3-80
+  selector:
+    app: app3
+---
+```
+7. Verify services are running
+```shell
+kubectl get services --namespace=arcadia
+```
+
+
+
+## Expose_an_App_with_NGINX+_Ingress_Controller
+
+- https://docs.nginx.com/nginx-ingress-controller/configuration/virtualserver-and-virtualserverroute-resources/
+
+
 ## NGINX+_Edge_L4_configuration
 > Additional documentation can be found here: 
 - https://docs.nginx.com/nginx/admin-guide/load-balancer/tcp-udp-load-balancer/
@@ -602,8 +871,3 @@ ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
 - https://docs.nginx.com/nginx/admin-guide/high-availability/configuration-sharing/
 
 
-## Deploy_an_App
-> 
-- https://docs.nginx.com/nginx-ingress-controller/configuration/virtualserver-and-virtualserverroute-resources/
-
-## Expose_an_App_with_NGINX+_Ingress_Controller
