@@ -587,16 +587,20 @@ spec:
   serviceClusterIPs:
   - cidr: 10.96.0.10/32
 ```
-4. Log into nginxedge01.f5.local and edit the DNS configuration to add the NGINX Edge servers.
+4. Apply the configuration
+```shell
+calicoctl apply -f bgpConfiguration.yaml 
+```
+5. Log into nginxedge01.f5.local and edit the DNS configuration to add the NGINX Edge servers.
 ```shell
 sudo nano /etc/resolv.conf
 ```
-5. Add the service IP address of KUBE-DNS and the domains.  Add the following:
+6. Add the service IP address of KUBE-DNS and the domains.  Add the following:
 ```shell
 nameserver 10.96.0.10   #kube-dns service IP address
 search . cluster.local svc.cluster.local
 ```
-6. Execute multiple ping test to from NGINX Edge server ensure different pod IPs of the NGINX+ Ingress controllers.
+7. Execute multiple ping test to from NGINX Edge server ensure different pod IPs of the NGINX+ Ingress controllers.
 ```shell
 ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
 ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
@@ -909,6 +913,7 @@ apiVersion: k8s.nginx.org/v1
 kind: VirtualServer
 metadata:
   name: arcadia
+  namespace: arcadia
 spec:
   host: arcadia-finance.f5.local
   upstreams:
@@ -1074,6 +1079,64 @@ stream {
     } 
 }
 ```
+9. Next you will need to update the nginx.conf to include the stream configuration
+```shell
+nano /etc/nginx/nginx.conf
+```
+10. Edit the nginx.conf file to include all configuration files stream.d folder
+```shell
+user  nginx;
+worker_processes  auto;
+
+error_log  /var/log/nginx/error.log notice;
+pid        /var/run/nginx.pid;
+
+
+events {
+    worker_connections  1024;
+}
+
+include /etc/nginx/stream.d/*.conf;
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+
+    access_log  /var/log/nginx/access.log  main;
+
+    sendfile        on;
+    #tcp_nopush     on;
+
+    keepalive_timeout  65;
+
+    #gzip  on;
+
+    include /etc/nginx/conf.d/*.conf;
+}
+
+
+# TCP/UDP proxy and load balancing block
+#
+#stream {
+    # Example configuration for TCP load balancing
+
+    #upstream stream_backend {
+    #    zone tcp_servers 64k;
+    #    server backend1.example.com:12345;
+    #    server backend2.example.com:12345;
+    #}
+
+    #server {
+    #    listen 12345;
+    #    status_zone tcp_server;
+    #    proxy_pass stream_backend;
+    #}
+#}
+```
 9. Test the configuration file for syntactic validity and reload NGINX+
 ```shell
 sudo nginx -t && sudo nginx -s reload
@@ -1082,6 +1145,8 @@ sudo nginx -t && sudo nginx -s reload
 ```shell
 curl -v http://localhost/ --header 'Host:arcadia-finance.f5.local'
 ```
+11. Test browser access. From the UDF Desktop, open a web broswer and browse to http://arcadia-finance.f5.local
+
 ## NGINX+_HA_configurations
 > Additional documentation can be found here: 
 - https://docs.nginx.com/nginx/admin-guide/high-availability 
