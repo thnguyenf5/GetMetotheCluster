@@ -1,6 +1,7 @@
 # Get me to the Cluster Lab - NGINX+ Ingress Controllers + NGINX+ Edge Servers
 > This is a lab environment to demonstrate the configuration and setup of a Kubernetes Cluster, Calico CNI, NGINX+ L4 Edge Servers, and NGINX+ Ingress Controllers. This lab environment is loosely based on the whitepaper - https://www.nginx.com/resources/library/get-me-to-the-cluster/.  
 
+![Conceptual](images/conceptual.png)
 ![Infrastructure](images/infrastructure.png)
 
 Infrastructure Lab Details
@@ -965,7 +966,7 @@ kubectl get virtualserver arcadia
 
 
 ## NGINX+_Edge_L4_configuration
-> In this part of the lab, we will first enable the NGINX+ Live Activity Monitoring with dashboard.  We will then configure a separate conf file for the stream configurations required to allow the NGINX edge server to the the DNS resolution feature.  Additional documentation can be found here: 
+> In this part of the lab, we will first enable the NGINX+ Live Activity Monitoring with dashboard.  We will then configure a separate conf file for the stream configurations required to allow the NGINX edge server to the the DNS resolution feature.  This section will have configurations only deployed on NGINX Edge 01.  We will look at HA configuration syncs in a later part of the lab.  Additional documentation can be found here: 
 - https://docs.nginx.com/nginx/admin-guide/load-balancer/tcp-udp-load-balancer/
 
 1. Log into nginxedge01.f5.local as user01
@@ -1040,11 +1041,12 @@ server {
 ```shell
 sudo nginx -t && sudo nginx -s reload
 ```
-5. Test from a web browser  Launch the UDF Desktop via XRDP.
-- Be sure to log into the remote desktop with the ubuntu user.
+5. Test from a web browser.  Launch the UDF Desktop via XRDP.
+- Be sure to log into the remote desktop with the ubuntu user. You may have to modify your remote desktop client settings to prompt for a user upon login. 
 - Open firefox broswer and browse to http://10.1.1.4:8080/dashboard.html
+- Confirm access to the dashboard and that you are not seeing any errors.  
 
-6. Next we will create the stream configurations for the L4 LB configurations in its own folder
+6. Next we will create the stream configurations for the L4 LB configurations in its own folder on NGINX Edge01
 ```shell
 sudo mkdir /etc/nginx/stream.d
 ```
@@ -1054,8 +1056,8 @@ sudo nano /etc/nginx/stream.d/nginxedge.conf
 ```
 8. Edit configuration file to handle traffic on port 80 and 443 with these configuration blocks:
 - Resolver directive tells NGINX which DNS servers to query every 10 seconds.  The DNS resolver metrics will be captured in the live activity dashboard
-- Zone directive collects TCP stats which will also be caputured in the TCP/UDP Upstreams tab on the live activity dashboard
-- Resolve parameter tells NGINX+ to query DNS for the list of IP addresses for the server's FQDN.
+- Zone directive collects TCP stats which will also be displayed in the TCP/UDP Upstreams tab on the live activity dashboard
+- Resolve parameter tells NGINX+ to query KUBE-DNS for the list of IP addresses for the FQDN.
 ```shell
 # NGINX edge server Layer 4 configuration file
 # Use kube-dns ClusterIP address advertised through Calico for the NGINX Plus resolver 
