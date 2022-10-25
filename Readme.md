@@ -47,6 +47,7 @@ Client Desktop
 - [Expose an app via NGINX+ Ingress Controller](#Expose_an_App_with_NGINX_Ingress_Controller) 
 - [NGINX+ Edge L4 configuration](#NGINX_Edge_L4_configuration)
 - [NGINX+ HA configurations](#NGINX_HA_configurations)
+- [NGINX Management Suite](#NGINX_Management_Suite)
 
 
 ---
@@ -1226,3 +1227,10 @@ CONFPATHS="/etc/nginx/nginx.conf /etc/nginx/conf.d /etc/nginx/stream.d"
 ```shell
 nginx-sync.sh -h
 ```
+
+
+
+
+## NGINX_Management_Suite
+> WORK IN PROGRESS
+> In this section of the lab, you will be configuring NGINX Management Suite (NMS).
