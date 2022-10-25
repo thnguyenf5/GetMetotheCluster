@@ -27,7 +27,7 @@ Client Desktop
 - Ubuntu 22.04 LTS 
 - FRR routing package was used instead of Quagga
 - 10.1.1.0/24 is the underlay network
-- 172.16.1.0/24 will by the POD network to be advertised via iBGP
+- 172.16.1.0/24 will be the POD network to be advertised via iBGP
 - Additional DNS resiliency was added by advertising a single /32 route for the KUBE-DNS service instead using the individual kube-dns pod IPs in the resolv.conf files.
 - In this lab, we will not be utilizing the IP Pools functionality of the whitepaper.
 
@@ -58,7 +58,7 @@ Client Desktop
 ```shell
 su - user01
 ```
-3. Initialize kubernentes cluster
+3. Initialize kubernetes cluster
 ```shell
 echo 1 > /proc/sys/net/ipv4/ip_forward
 sudo kubeadm config images pull
@@ -492,7 +492,7 @@ nginx -v
 15. Repeat NGINX+ installation on nginxedge02.f5.local
 16. Repeat NGINX+ installation on nginxedge03.f5.local 
 
-#FRR_installation
+## FRR_installation
 > In this section, you will install FRR package as to enable BGP functionality on the NGINX+ Edge servers.  Additional documentation can be found here: 
 -  https://docs.frrouting.org/projects/dev-guide/en/latest/building-frr-for-ubuntu2004.html
 1. Install dependencies
@@ -506,7 +506,7 @@ sudo apt-get install \
 ```
 2. Ubuntu 20+ no longer installs python 2.x, so it must be installed explicitly. Create symlink named /usr/bin/python pointing at /usr/bin/python3.
 ```shell
-sudo ln -s /usr/bin/python /usr/bin/python
+sudo ln -s /usr/bin/python /usr/bin/python3
 ```
 3. Install FRR package
 ```shell
@@ -1228,9 +1228,3 @@ CONFPATHS="/etc/nginx/nginx.conf /etc/nginx/conf.d /etc/nginx/stream.d"
 nginx-sync.sh -h
 ```
 
-
-
-
-## NGINX_Management_Suite
-> WORK IN PROGRESS
-> In this section of the lab, you will be configuring NGINX Management Suite (NMS).
