@@ -911,7 +911,7 @@ kubectl get services --namespace=arcadia
 ```
 
 ## Expose_an_App_with_NGINX+_Ingress_Controller
-> In the [Deploy an App](#Deploy_an_App) section, you deployed the Arcadia finance app with a ClusterIP servicetype.  You will now create an Ingress for the Arcadia Application utilizing the NGINX+ Ingress controller by createing a manifest file and using VirtualServer and VirtualServerRoute Resources.  
+> In the [Deploy an App](#Deploy_an_App) section, you deployed the Arcadia finance app with a internal ClusterIP servicetype.  In order to expose the application, you will now expose the Arcadia Application utilizing the NGINX+ Ingress controller by createing a manifest file and using VirtualServer and VirtualServerRoute Resources.  
 - https://docs.nginx.com/nginx-ingress-controller/configuration/virtualserver-and-virtualserverroute-resources/
 
 1. Create arcadia-virtualserver.yaml manifest file.
@@ -1037,7 +1037,9 @@ server {
 ```shell
 sudo nginx -t && sudo nginx -s reload
 ```
-5. Test from a web browser - http://10.1.1.4:8080/dashboard.html
+5. Test from a web browser  Launch the UDF Desktop via XRDP.
+- Be sure to log into the remote desktop with the ubuntu user.
+- Open firefox broswer and browse to http://10.1.1.4:8080/dashboard.html
 
 6. Next we will create the stream configurations for the L4 LB configurations in its own folder
 ```shell
@@ -1152,12 +1154,15 @@ http {
 ```shell
 sudo nginx -t && sudo nginx -s reload
 ```
-10. Test application access
+10. Test application access from NGINX Edge 01 
 ```shell
 curl -v http://localhost/ --header 'Host:arcadia-finance.f5.local'
 ```
-11. Test browser access. Launch the UDF Desktop via XRDP.
-- Be sure to log into the remote desktop with the ubuntu user.
+11. Review the NGINX+ dashboard from the web browser
+- Review TCP/UDP Zones
+- Review TCP/UDP Upstreams. The IPs should match the pod IPs of the nginx-ingress controllers. (on k8scontrol01.f5.local kubectl get pods --all-namespaces -o wide)
+- Review Resolvers
+12. Test browser access from the UDF Desktop via XRDP.
 - Open firefox broswer and browse to http://arcadia-finance.f5.local 
 - Browse the web page. You can log into the application with creds: matt:ilovef5
 
