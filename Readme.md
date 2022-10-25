@@ -1228,3 +1228,13 @@ CONFPATHS="/etc/nginx/nginx.conf /etc/nginx/conf.d /etc/nginx/stream.d"
 nginx-sync.sh -h
 ```
 
+<<<<<<< main
+=======
+
+
+
+
+## NGINX_Management_Suite
+> WORK IN PROGRESS
+> In this section of the lab, you will be configuring NGINX Management Suite (NMS).
+>>>>>>> main
