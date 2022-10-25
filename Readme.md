@@ -13,6 +13,10 @@ Lab Details
 - user: user01
 - pass: f5agility!
 
+- 10.1.1.11 - client.f5.local
+- user: ubuntu
+- pass: f5agility!
+
 > UDF blueprint has prerequisite software like containerd and kubectl/kubeadmin/kubelet packages.  This lab also uses local  hostfile for DNS resolution.  UDF blueprint is listed as "NGINX Ingress Controller - Calico CNI - Get me to the Cluster"
 
 > Additional changes that were made from the white paper:
@@ -591,16 +595,23 @@ spec:
 ```shell
 calicoctl apply -f bgpConfiguration.yaml 
 ```
-5. Log into nginxedge01.f5.local and edit the DNS configuration to add the NGINX Edge servers.
+5. Log into nginxedge01.f5.local as user01 and confirm BGP routes for the kube-DNS IP address.
+```
+sudo vtysh
+
+show ip route
+```
+
+6. Edit the localhost DNS configuration to add the kubedns service as a DNS resolver..
 ```shell
 sudo nano /etc/resolv.conf
 ```
-6. Add the service IP address of KUBE-DNS and the domains.  Add the following:
+7. Add the service IP address of KUBE-DNS and the domains.  Add the following:
 ```shell
 nameserver 10.96.0.10   #kube-dns service IP address
 search . cluster.local svc.cluster.local
 ```
-7. Execute multiple ping test to from NGINX Edge server ensure different pod IPs of the NGINX+ Ingress controllers.
+8. Execute multiple ping test to from NGINX Edge server ensure different pod IPs of the NGINX+ Ingress controllers.
 ```shell
 ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
 ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
@@ -1145,7 +1156,10 @@ sudo nginx -t && sudo nginx -s reload
 ```shell
 curl -v http://localhost/ --header 'Host:arcadia-finance.f5.local'
 ```
-11. Test browser access. From the UDF Desktop, open a web broswer and browse to http://arcadia-finance.f5.local
+11. Test browser access. Launch the UDF Desktop via XRDP.
+- Be sure to log into the remote desktop with the ubuntu user.
+- Open firefox broswer and browse to http://arcadia-finance.f5.local 
+- Browse the web page. You can log into the application with creds: matt:ilovef5
 
 ## NGINX+_HA_configurations
 > Additional documentation can be found here: 
