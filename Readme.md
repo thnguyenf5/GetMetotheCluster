@@ -1,7 +1,7 @@
 # Get me to the Cluster Lab - NGINX+ Ingress Controllers + NGINX+ Edge Servers
 > This is a lab environment to demonstrate the configuration and setup of a Kubernetes Cluster, Calico CNI, NGINX+ L4 Edge Servers, and NGINX+ Ingress Controllers. This lab environment is loosely based on the whitepaper - https://www.nginx.com/resources/library/get-me-to-the-cluster/.  
 
-! [Infrastructure] (images/infrastructure.png)
+![Infrastructure](images/infrastructure.png)
 
 Lab Details
 - 10.1.1.4 - nginxedge01.f5.local 
