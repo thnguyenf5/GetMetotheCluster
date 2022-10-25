@@ -1167,11 +1167,57 @@ curl -v http://localhost/ --header 'Host:arcadia-finance.f5.local'
 - Browse the web page. You can log into the application with creds: matt:ilovef5
 
 ## NGINX+_HA_configurations
-> Additional documentation can be found here: 
+> CURRENT WORK IN PROGRESS. Additional documentation can be found here: 
 - https://docs.nginx.com/nginx/admin-guide/high-availability 
 
-1. Configure Config Sync
->
+### Configure Config Sync
+> In this section, you will be using NGINX+ Edge 01 server as the primary node and pushing the configuration files to the additional NGINX+ Edge 02 and 03 nodes.  Additional documentation can be found here: 
 - https://docs.nginx.com/nginx/admin-guide/high-availability/configuration-sharing/
+1. Install nginx-sync package on NGINX+ Edge 01
+```shell
+sudo apt-get install nginx-sync
+```
+2. Grant the primary machine ssh access as root to the peer machines. On the primary node, generate an SSH authentication key pair for root and view the public part of the key:
+```shell
+sudo ssh-keygen -t rsa -b 2048
 
-
+sudo cat /root/.ssh/id_rsa.pub
+```
+3. Copy the output as you will need it in the next step:
+```shell
+ssh-rsa AAAAB3Nz4rFgt...vgaD root@node1
+```
+4. On each peer node (NGINX Edge 02 and 03), append the public key to root’s authorized_keys file. The from=10.1.1.4 prefix restricts access to only the IP address of the primary node.  Replace the AAAA string with your output
+```shell
+sudo mkdir /root/.ssh
+sudo echo 'from=”10.1.1.4" ssh-rsa AAAAB3Nz4rFgt...vgaD root@node1' >> /root/.ssh/authorized_keys
+```
+5. Modify /etc/ssh/sshd_config:
+```shell
+nano /etc/ssh/sshd_config
+```
+6. Add the following line to /etc/ssh/sshd_config
+```shell
+PermitRootLogin without-password
+```
+7. Reload sshd on each peer (but not the primary) by logging into NGINX Edge 02 and NGINX Edge 03
+```shell
+sudo service ssh reload
+```
+8. Verify that the root user can ssh to each of the other nodes without providing a password:
+```shell
+sudo ssh root@nginxedge02.f5.local nginxedge03.f5.local
+```
+9. On the primary node, create file /etc/nginx-sync.conf
+```shell
+sudo nano /etc/nginx-sync.conf 
+```
+10. Add the following contents to define the nodes and three configuration files
+```shell
+NODES="nginxedge02.f5.local nginxedge03.f5.local"
+CONFPATHS="/etc/nginx/nginx.conf /etc/nginx/conf.d /etc/nginx/stream.d"
+```
+11. Synchronize configuration and reload NGINX+ on the peers
+```shell
+nginx-sync.sh -h
+```
