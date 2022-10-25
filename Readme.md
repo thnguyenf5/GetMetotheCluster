@@ -3,7 +3,7 @@
 
 ![Infrastructure](images/infrastructure.png)
 
-Lab Details
+Infrastructure Lab Details
 - 10.1.1.4 - nginxedge01.f5.local 
 - 10.1.1.5 - nginxedge02.f5.local 
 - 10.1.1.6 - nginxedge03.f5.local
@@ -15,6 +15,7 @@ Lab Details
 - user: user01
 - pass: f5agility!
 
+Client Desktop
 - 10.1.1.11 - client.f5.local
 - user: ubuntu
 - pass: f5agility!
@@ -1169,7 +1170,7 @@ curl -v http://localhost/ --header 'Host:arcadia-finance.f5.local'
 - Browse the web page. You can log into the application with creds: matt:ilovef5
 
 ## NGINX+_HA_configurations
-> CURRENT WORK IN PROGRESS. Additional documentation can be found here: 
+> WORK IN PROGRESS - NOT COMPLETED. Additional documentation can be found here: 
 - https://docs.nginx.com/nginx/admin-guide/high-availability 
 
 ### Configure Config Sync
