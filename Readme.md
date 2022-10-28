@@ -54,17 +54,17 @@ Client Desktop
 ## K8s_Installation
 > During this section, you will initialize the kubernetes cluster on k8scontrol01.f5.local.  Utilize the UDF portal to log in via the web shell.
 1. Log into k8scontrol01.f5.local 
-2. Switch to user01 (Password: f5agility!)
+2. Initialize kubernetes cluster as root user
+```shell
+echo 1 > /proc/sys/net/ipv4/ip_forward
+kubeadm config images pull
+kubeadm init --control-plane-endpoint=k8scontrol01.f5.local --pod-network-cidr=172.16.1.0/24
+```
+3. Note the output of k8s intialization.  Copy the text output to a seperate file on how to add additional worker nodes to the K8s cluster.  The worker nodes output will be required in a later step in the lab.
+4. Switch to user01 (Password: f5agility!)
 ```shell
 su - user01
 ```
-3. Initialize kubernetes cluster
-```shell
-echo 1 > /proc/sys/net/ipv4/ip_forward
-sudo kubeadm config images pull
-sudo kubeadm init --control-plane-endpoint=k8scontrol01.f5.local --pod-network-cidr=172.16.1.0/24
-```
-4. Note the output of k8s intialization.  Copy the text output to a seperate file on how to add additional worker nodes to the K8s cluster.  The worker nodes output will be required in a later step in the lab.
 5. Create kubernetes directories in user01 folder
 ```shell
 mkdir -p $HOME/.kube
