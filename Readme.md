@@ -1203,7 +1203,8 @@ curl -v http://localhost/ --header 'Host:arcadia-finance.f5.local'
 - Review Resolvers
 12. Test browser access from the UDF Desktop via XRDP.
 - Open firefox broswer and browse to http://arcadia-finance.f5.local 
-- Browse the web page. You can log into the application with creds: matt:ilovef5
+- Browse the web page by clicking around on the website. NOTE the NGINX+ dashboard statistics increasing as you interact with the application.   
+- You can log into the application with creds at http://arcadia-finance.f5.local/trading/login.php (matt:ilovef5)
 
 ## NGINX+_HA_configurations
 > WORK IN PROGRESS - NOT COMPLETED. Additional documentation can be found here: 
