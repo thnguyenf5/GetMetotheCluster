@@ -315,7 +315,7 @@ kubectl apply -f kubernetes-ingress/deployments/common/crds/k8s.nginx.org_polici
 
 kubectl apply -f kubernetes-ingress/deployments/common/crds/k8s.nginx.org_globalconfigurations.yaml
 ```
-7. Create docker-registry secret on the cluster using the JWT token from your myF5 account. (NOTE: Replace the < JWT Token > with the JWT token information from your myF5.com portal)
+7. Create docker-registry secret on the cluster using the JWT token from your myF5 account. (NOTE: Replace the < JWT Token > with the JWT token information from your myF5.com portal.  Your entry could resemble --docker-username=a93hfganasd3h4BSkaj)
 ```shell
 kubectl create secret docker-registry regcred --docker-server=private-registry.nginx.com --docker-username=<JWT Token> --docker-password=none -n nginx-ingress
 ```
@@ -416,11 +416,11 @@ spec:
 ```shell
 kubectl apply -f kubernetes-ingress/deployments/deployment/nginx-plus-ingress.yaml
 ```
-12. Confirm NGINX+ Ingress Controller pods are running
+12. Confirm NGINX+ Ingress Controller pods are running. 
 ```shell
 kubectl get pods --namespace=nginx-ingress
 ```
-13. Create a service for the Ingress Controller pods
+13. Create a service for the Ingress Controller pods.
 ```shell
 nano nginx-ingress-svc.yaml
 ```
@@ -449,6 +449,10 @@ spec:
 15. Deploy the service via manifest 
 ```shell
 kubectl apply -f nginx-ingress-svc.yaml 
+```
+16. Confirm that the NGINX+ ingress service is running.  NOTE: Kube-DNS service is also running.
+```shell
+kubectl get services --all-namespaces -o wide
 ```
 ## NGINX+_Edge_installation
 > In this section, you will be installing NGINX+ on the edge servers outside of the K8's cluster.  These edge servers will be responible for L4 Load Balancing to the K8's clusters.  In order to complete this section, log into your myF5.com account and download the cert and key for NGINX+.  Additional documentation can be found here:
