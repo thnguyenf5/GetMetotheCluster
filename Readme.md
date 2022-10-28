@@ -68,10 +68,12 @@ su - user01
 5. Create kubernetes directories in user01 folder
 ```shell
 mkdir -p $HOME/.kube
+
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
-6. Confirm cluster installation
+6. Confirm cluster installation.  NOTE: that the status of the control node will be listed as NotReady.  This is because the cluster does not yet have a CNI installed yet.  You will install Calico in the next section of the lab.
 ```shell
 kubectl cluster-info
 kubectl get nodes
@@ -79,16 +81,17 @@ kubectl get nodes
 
 ---
 ## Calico_Installation
-> During this section, you will be installing Calico as the K8s CNI.  You will also install Calicoctl. Additional documentation can be found here: 
+> During this section, you will be installing Calico as the K8s CNI.  You will also install Calicoctl which is a command line tool to manage Calico resources and perform adminstrative functions. Additional documentation can be found here: 
 - https://projectcalico.docs.tigera.io/getting-started/kubernetes/quickstart
 - https://projectcalico.docs.tigera.io/maintenance/clis/calicoctl/install
 
 1. Download the Calico manifest to the K8s control01 node.  
 ```shell
 curl https://raw.githubusercontent.com/projectcalico/calico/v3.24.1/manifests/tigera-operator.yaml -O
+
 curl https://raw.githubusercontent.com/projectcalico/calico/v3.24.1/manifests/custom-resources.yaml -O
 ```
-2. Edit the custom-resources manifest to match the 172.16.1.0/24 CIDR pod network.
+2. Edit the custom-resources manifest to configure 172.16.1.0/24 CIDR for pod network.
 ```shell
 nano custom-resources.yaml
 ```
@@ -124,19 +127,22 @@ spec: {}
 4. Deploy Calico CNI
 ```shell
 kubectl create -f tigera-operator.yaml
+
 kubectl create -f custom-resources.yaml
 ```
-5. Confirm Calico deployment.  Confirm that all of the calico pods are in a RUNNING state
+5. Confirm Calico deployment.  Confirm that all of the calico pods are in a Running state. Once all pods are in a Running state, <CRTL+c> to break and move to the next step.
 ```shell
 watch kubectl get pods -n calico-system
 ```
 6. Install Calicoctl into the /usr/local/bin/
 ```shell
 cd /usr/local/bin/
+
 sudo curl -L https://github.com/projectcalico/calico/releases/download/v3.24.1/calicoctl-linux-amd64 -o calicoctl
+
 sudo chmod +x ./calicoctl
 ```
-7. Confirm Calicoctl installation
+7. Confirm Calicoctl installation.  Confirm the the Calico process is running.  NOTE: no BGP peers will be found as we will configure that in later portion of the lab.  
 ```shell
 sudo calicoctl node status
 ```
@@ -158,14 +164,15 @@ kubeadm join k8scontrol01.f5.local:6443 --token 4fpx9j.rum6ldoc63t3p0gy \
         --discovery-token-ca-cert-hash sha256:5990a4cb02eea640c88b3c764bd452b932d1228380f22368bc48eff439cd7469 
 ```
 5. Repeat this process on the remainaing worker nodes k8sworker02.f5.local and k8sworker3.f5.local 
-6. Confirm status of K8s cluster by switching to k8scontrol01.f5.local web shell
+6. As user01 on k8scontrol01.f5.local command line, confirm the K8s cluster status. NOTE: the k8s nodes will now show their status as Ready. Calico node pods should be deployed on both worker and control nodes.  Core DNS pods should also be running now. 
 ```shell
 kubectl get nodes -o wide
+
 kubectl get pods --all-namespaces -o wide
 ```
 ## Calico_iBGP_configuration
 > In this section, you will configure BGP for Calico.
-1. On the k8scontrol01.f5.local create a bgpConfiguration.yaml file. 
+1. On the k8scontrol01.f5.local create a bgpConfiguration.yaml file to define the initial BGP configurations.  
 ```shell
 nano bgpConfiguration.yaml
 ```
@@ -180,15 +187,15 @@ spec:
   nodeToNodeMeshEnabled: true
   asNumber: 64512
 ```
-3. Apply the bgp configurations.
+3. Deploy the BGP configuration manifest to the Calico CNI.
 ```shell
 calicoctl create -f bgpConfiguration.yaml
 ```
-4. Create bgppeers.yaml file
+4. Next you will create the definition of the BGP Peers for the lab evironment. Create bgppeers.yaml file.
 ```shell
 nano bgppeers.yaml
 ```
-5. Edit the confents of the yaml file to define your BGP peers.
+5. Edit the confents of the yaml file to define your BGP peers.  This file will now point to each K8s node and each NGINX+ Edge instance.  
 ```
 apiVersion: projectcalico.org/v3 
 kind: BGPPeer
@@ -246,15 +253,17 @@ spec:
   peerIP: 10.1.1.6
   asNumber: 64512
 ```
-6. Configure BGP peers for calico
+6. Deploy the BGP peers manifest to the Calico CNI.
 ```shell
 calicoctl create -f bgppeers.yaml
 ```
-7. Get BGP configurations. (NOTE: the NGINX+ Edge servers will be in a connection refused state. This is because the NGINX+ Edge servers have not yet been configured with BGP. ßYou will configure the BGP on the Edge servers later in the lab.)
+7. Get BGP configurations. (NOTE: the NGINX+ Edge servers will be in a Connection Refused state. This is because the NGINX+ Edge servers have not yet been configured with BGP. You will configure the BGP on the Edge servers later in the lab.)
 ```shell
-sudo calicoctl node status
-calicoctl get bgpPeer
 calicoctl get bgpConfiguration
+
+calicoctl get bgpPeer
+
+sudo calicoctl node status
 ```
 ## NGINX+_Ingress_Controller_deployment
 > In this section, you will deploy NGINX+ Ingress Controller via a manifest using a JWT token as a deployment.  In order to get your JWT token, log into your myF5 portal and download your JWT token entitlement. Additional documentation can be found here: 
@@ -267,12 +276,13 @@ git clone https://github.com/nginxinc/kubernetes-ingress.git --branch v2.3.1
 ```
 2. Configure RBAC
 ```shell
-kubectl apply -f common/ns-and-sa.yaml
-kubectl apply -f rbac/rbac.yaml 
+kubectl apply -f kubernetes-ingress/deployments/common/ns-and-sa.yaml
+
+kubectl apply -f kubernetes-ingress/deployments/rbac/rbac.yaml 
 ```
 3. Modify downloaded manifest to enable NGINX+ Ingress Controller as default ingress class
 ```shell
-nano common/ingress-class.yaml
+nano kubernetes-ingress/deployments/common/ingress-class.yaml
 ```
 4. Uncomment the annotation ingressclass.kubernetes.io/is-default-class. With this annotation set to true all the new Ingresses without an ingressClassName field specified will be assigned this IngressClass.
 ```shell
@@ -287,17 +297,23 @@ spec:
 ```
 5. Create Common Resources
 ```shell
-kubectl apply -f common/default-server-secret.yaml
-kubectl apply -f common/nginx-config.yaml
-kubectl apply -f common/ingress-class.yaml
+kubectl apply -f kubernetes-ingress/deployments/common/default-server-secret.yaml
+
+kubectl apply -f kubernetes-ingress/deployments/common/nginx-config.yaml
+
+kubectl apply -f kubernetes-ingress/deployments/common/ingress-class.yaml
 ```
 6. Create Custom Resources
 ```shell
-kubectl apply -f common/crds/k8s.nginx.org_virtualservers.yaml
-kubectl apply -f common/crds/k8s.nginx.org_virtualserverroutes.yaml
-kubectl apply -f common/crds/k8s.nginx.org_transportservers.yaml
-kubectl apply -f common/crds/k8s.nginx.org_policies.yaml
-kubectl apply -f common/crds/k8s.nginx.org_globalconfigurations.yaml
+kubectl apply -f kubernetes-ingress/deployments/common/crds/k8s.nginx.org_virtualservers.yaml
+
+kubectl apply -f kubernetes-ingress/deployments/common/crds/k8s.nginx.org_virtualserverroutes.yaml
+
+kubectl apply -f kubernetes-ingress/deployments/common/crds/k8s.nginx.org_transportservers.yaml
+
+kubectl apply -f kubernetes-ingress/deployments/common/crds/k8s.nginx.org_policies.yaml
+
+kubectl apply -f kubernetes-ingress/deployments/common/crds/k8s.nginx.org_globalconfigurations.yaml
 ```
 7. Create docker-registry secret on the cluster using the JWT token from your myF5 account. (NOTE: Replace the < JWT Token > with the JWT token information from your myF5.com portal)
 ```shell
@@ -309,7 +325,7 @@ kubectl get secret regcred --output=yaml -n nginx-ingress
 ```
 9. Modify the NGINX+ Ingress Controller manifest
 ```shell
-nano deployment/nginx-plus-ingress.yaml
+nano kubernetes-ingress/deployments/deployment/nginx-plus-ingress.yaml
 ```
 10. Update the contents of the yaml file:
 - Increase the number of NGINX+ replicas to 3
@@ -398,7 +414,7 @@ spec:
 ```
 11. Run NGINX+ Ingress Controller
 ```shell
-kubectl apply -f deployment/nginx-plus-ingress.yaml
+kubectl apply -f kubernetes-ingress/deployments/deployment/nginx-plus-ingress.yaml
 ```
 12. Confirm NGINX+ Ingress Controller pods are running
 ```shell
