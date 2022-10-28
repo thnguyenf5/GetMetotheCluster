@@ -628,14 +628,16 @@ spec:
 ```shell
 calicoctl apply -f bgpConfiguration.yaml 
 ```
-6. Log into nginxedge01.f5.local as user01 and confirm BGP routes for the kube-DNS IP address.
+6. Log into nginxedge01.f5.local as user01 and confirm BGP routes for the kube-DNS IP address.  Exit the shell.
 ```
 sudo vtysh
 
 show ip route
+
+exit
 ```
 
-7. Edit the localhost DNS configuration to add the kubedns service as a DNS resolver..
+7. On nginxedge01.f5.local as user01, edit the localhost DNS configuration to add the kubedns service as a DNS resolver.
 ```shell
 sudo nano /etc/resolv.conf
 ```
@@ -644,7 +646,7 @@ sudo nano /etc/resolv.conf
 nameserver 10.96.0.10   #kube-dns service IP address
 search . cluster.local svc.cluster.local
 ```
-9. Execute multiple ping test to from NGINX Edge server ensure different pod IPs of the NGINX+ Ingress controllers.
+9. Execute multiple ping test to from NGINX Edge server ensure different pod IPs of the NGINX+ Ingress controllers.  You have now established DNS connectivity to from the external NGINX+ edge servers into the K8s cluster's private Kube-DNS environment.  
 ```shell
 ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
 ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
@@ -652,16 +654,17 @@ ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
 ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
 ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
 ```
+10. Repeat steps 6-9 on nginxedge02.f5.local and nginxedge03.f5.local.  
 ## Deploy_an_App
 > In this section of the lab, you will deploy an example modern application Arcadia Financial application.  This application is composed of 4 services.  Additional information can be found here:
 - https://gitlab.com/arcadia-application
 
-1. Log into k8scontrol01.f5.local.
+1. Log into k8scontrol01.f5.local as user01.
 2. Create arcadia-deployment.yaml to deploy application via manifest
 ```shell
 nano arcadia-deployment.yaml
 ```
-3. Edit contents of the manifest file:
+3. Edit contents of the manifest file.  This manifest file will define a new namespace for the arcadia app.  This will also deploy the main, backend, app2, and app3 portions of the arcadia application with a replicaset definition of 3.  
 ```shell
 ##################################################################################################
 # CREATE NAMESPACE - ARCADIA
@@ -840,16 +843,17 @@ spec:
             memory: "20Mi"
 ---
 ```
-4. Deploy and verify the pods are running.
+4. Deploy and verify the pods are running.  Move onto the next step once the pods are running.  
 ```shell
 kubectl create -f arcadia-deployment.yaml
+
 kubectl get pods -n arcadia
 ```
-5. Create arcadia-service.yaml to create service
+5. Create arcadia-service.yaml to create service for each portion of the arcadia application.  
 ```shell
 nano arcadia-service.yaml
 ```
-6. Edit contents for arcadia-service.yaml using the ClusterIP type service.
+6. Edit contents for arcadia-service.yaml using the ClusterIP type service listening on port 80 to create a service for backend, main, app2, and app3.
 ```shell
 ##################################################################################################
 # FILES - BACKEND
@@ -937,7 +941,7 @@ spec:
     app: app3
 ---
 ```
-7. Verify services are running
+7. Verify services are running.
 ```shell
 kubectl create -f arcadia-service.yaml
 kubectl get services --namespace=arcadia
@@ -951,7 +955,7 @@ kubectl get services --namespace=arcadia
 ```shell
 nano arcadia-virtualserver.yaml
 ```
-2. Edit the contents of arcadia-virtualserver.yaml manifest
+2. Edit the contents of arcadia-virtualserver.yaml manifest.  This manifest will allow us to route URI paths to specific services of the arcdia application.  
 ```shell
 apiVersion: k8s.nginx.org/v1
 kind: VirtualServer
@@ -990,7 +994,8 @@ spec:
 3. Deploy and confirm VirtualServer and VirtualServceRoute resources
 ```shell
 kubectl create -f arcadia-virtualserver.yaml
-kubectl get virtualserver arcadia
+
+kubectl get virtualserver arcadia -n arcadia
 ```
 
 
@@ -1121,14 +1126,14 @@ stream {
 
     server {
         listen 443;
-        status_zone tcp_server_8443; 
+        status_zone tcp_server_443; 
         proxy_pass nginx-ingress-443;
     } 
 }
 ```
 9. Next you will need to update the nginx.conf to include the stream configuration
 ```shell
-nano /etc/nginx/nginx.conf
+sudo nano /etc/nginx/nginx.conf
 ```
 10. Edit the nginx.conf file to include all configuration files stream.d folder
 ```shell
@@ -1192,7 +1197,7 @@ sudo nginx -t && sudo nginx -s reload
 ```shell
 curl -v http://localhost/ --header 'Host:arcadia-finance.f5.local'
 ```
-11. Review the NGINX+ dashboard from the web browser
+11. Refresh the webpage of the NGINX+ dashboard on the client desktop.  
 - Review TCP/UDP Zones
 - Review TCP/UDP Upstreams. The IPs should match the pod IPs of the nginx-ingress controllers. (on k8scontrol01.f5.local kubectl get pods --all-namespaces -o wide)
 - Review Resolvers
