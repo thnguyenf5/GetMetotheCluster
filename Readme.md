@@ -464,6 +464,7 @@ su - user01
 2. Create the /etc/ssl/nginx directory
 ```shell
 sudo mkdir /etc/ssl/nginx
+
 cd /etc/ssl/nginx
 ```
 3. Create nginx-repo.crt
@@ -476,7 +477,7 @@ sudo nano nginx-repo.crt
 sudo nano nginx-repo.key
 ```
 6. Paste contents of key from your nginx-repo.key downloaded from myF5 portal.
-7. switch back to home directory
+7. Switch back to home directory
 ```shell
 cd /home/user01
 ```
@@ -487,6 +488,7 @@ sudo apt-get install apt-transport-https lsb-release ca-certificates wget gnupg2
 9. Download and add NGINX signing key and App Protect security updates signing key:
 ```shell
 wget -qO - https://cs.nginx.com/static/keys/nginx_signing.key | gpg --dearmor | sudo tee /usr/share/keyrings/nginx-archive-keyring.gpg >/dev/null
+
 wget -qO - https://cs.nginx.com/static/keys/app-protect-security-updates.key | gpg --dearmor | sudo tee /usr/share/keyrings/app-protect-security-updates.gpg >/dev/null
 ```
 10. Add the NGINX Plus repository.
@@ -524,31 +526,30 @@ sudo apt-get install \
    install-info build-essential libsnmp-dev perl \
    libcap-dev python2 libelf-dev libunwind-dev
 ```
-2. Ubuntu 20+ no longer installs python 2.x, so it must be installed explicitly. Create symlink named /usr/bin/python pointing at /usr/bin/python3.
-```shell
-sudo ln -s /usr/bin/python /usr/bin/python3
-```
-3. Install FRR package
+2. Install FRR package
 ```shell
 sudo apt-get install frr -y
 ```
-4. Enable BGP process for FRR daemons by editing the 
+3. Enable BGP process for FRR daemons by editing the 
 ```shell
 sudo systemctl stop frr
+
 sudo nano /etc/frr/daemons
 ```
-5. Edit the file to to enable bgpd
+4. Edit the file to to enable bgpd
 ```shell
 bgpd=yes
 ```
-6. Enable and confirm FRR service
+5. Enable and confirm FRR service is active and running.
 ```shell
 sudo systemctl enable frr.service
+
 sudo systemctl restart frr.service
+
 sudo systemctl status frr
 ```
-7. Repeat NGINX+ installation on nginxedge02.f5.local
-8. Repeat NGINX+ installation on nginxedge03.f5.local 
+6. Repeat NGINX+ installation on nginxedge02.f5.local
+7. Repeat NGINX+ installation on nginxedge03.f5.local 
 
 #FRR_iBGP_configuration
 > In this section, you will configure iBGP on the NGINX+ Edge server and build a mesh with the K8's Calico CNI.  
@@ -584,8 +585,11 @@ write
 3. Confirm configurations
 ```shell
 show running-config
+
 show ip bgp summary
+
 show bgp neighbors
+
 show ip route
 ```
 4. Exit vtysh shell
@@ -598,12 +602,16 @@ exit
 ## NGINX+_Edge_DNS_resolution
 > In this section, you will setup DNS resolution on the NGINX+ Edge servers to utilize the internal DNS core-dns solution. As part of this lab, we will be advertising the service IP versus the individual pod endpoint ips as shown in the whitepaper. Additional documentation can be found here:
 - https://projectcalico.docs.tigera.io/networking/advertise-service-ips
-1. Log into k8scontrol01.f5.local.
-2. Describe the kube-dns service to get IP address information.  Note the Service IP address and the pod endpoint IP addresses.
+1. Log into k8scontrol01.f5.local as user01.
+2. Describe the kube-dns service to get IP address information.  NOTE the Service IP address and the pod endpoint IP addresses.  In this lab example, we will be utilizing the Service IP address in the 10.96.0.10.  
 ```shell
 kubectl describe svc kube-dns -n kube-system
 ```
-3. Update the existing bgpConfiguration.yaml manifest to add advertisement of the ServiceClusterIP. Below is an example of how to add a service IP address of 10.96.0.10/32.
+3. Update the existing bgpConfiguration.yaml manifest to add advertisement of the ServiceClusterIP.
+```shell
+nano bgpConfiguration.yaml
+```
+4.  Below is an example of how to add a service IP address of 10.96.0.10/32.
 ```shell
 apiVersion: projectcalico.org/v3
 kind: BGPConfiguration
@@ -616,27 +624,27 @@ spec:
   serviceClusterIPs:
   - cidr: 10.96.0.10/32
 ```
-4. Apply the configuration
+5. Apply the configuration
 ```shell
 calicoctl apply -f bgpConfiguration.yaml 
 ```
-5. Log into nginxedge01.f5.local as user01 and confirm BGP routes for the kube-DNS IP address.
+6. Log into nginxedge01.f5.local as user01 and confirm BGP routes for the kube-DNS IP address.
 ```
 sudo vtysh
 
 show ip route
 ```
 
-6. Edit the localhost DNS configuration to add the kubedns service as a DNS resolver..
+7. Edit the localhost DNS configuration to add the kubedns service as a DNS resolver..
 ```shell
 sudo nano /etc/resolv.conf
 ```
-7. Add the service IP address of KUBE-DNS and the domains.  Add the following:
+8. Add the service IP address of KUBE-DNS and the domains.  Add the following:
 ```shell
 nameserver 10.96.0.10   #kube-dns service IP address
 search . cluster.local svc.cluster.local
 ```
-8. Execute multiple ping test to from NGINX Edge server ensure different pod IPs of the NGINX+ Ingress controllers.
+9. Execute multiple ping test to from NGINX Edge server ensure different pod IPs of the NGINX+ Ingress controllers.
 ```shell
 ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
 ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
