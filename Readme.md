@@ -1225,28 +1225,23 @@ sudo cat /root/.ssh/id_rsa.pub
 ```
 3. Copy the output as you will need it in the next step:
 ```shell
-ssh-rsa AAAAB3Nz4rFgt...vgaD root@node1
+ssh-rsa AAAAB3Nz4rFgt...vgaD root@nginxedge01
 ```
-4. On each peer node (NGINX Edge 02 and 03), append the public key to root’s authorized_keys file. The from=10.1.1.4 prefix restricts access to only the IP address of the primary node.  Replace the AAAA string with your output
+4. Launch new web shell access to NGINX Edge 02 and 03 to log in as root.  You will append the public key to root’s authorized_keys file as the root user. The from=10.1.1.4 prefix restricts access to only the IP address of the primary node.  Replace the AAAA string with your output
 ```shell
-sudo mkdir /root/.ssh
-sudo echo 'from=”10.1.1.4" ssh-rsa AAAAB3Nz4rFgt...vgaD root@node1' >> /root/.ssh/authorized_keys
+echo 'from=”10.1.1.4" ssh-rsa AAAAB3Nz4rFgt...vgaD root@node1' >> /root/.ssh/authorized_keys
 ```
-5. Modify /etc/ssh/sshd_config:
+5. Modify /etc/ssh/sshd_config as root user:
 ```shell
-nano /etc/ssh/sshd_config
+/etc/ssh/sshd_config
 ```
-6. Add the following line to /etc/ssh/sshd_config
+6. Add the following line to /etc/ssh/sshd_config as root user
 ```shell
 PermitRootLogin without-password
 ```
-7. Reload sshd on each peer (but not the primary) by logging into NGINX Edge 02 and NGINX Edge 03
+7. Reload sshd on each peer (but not the primary) by logging into NGINX Edge 02 and NGINX Edge 03 as root user
 ```shell
-sudo service ssh reload
-```
-8. Verify that the root user can ssh to each of the other nodes without providing a password:
-```shell
-sudo ssh root@nginxedge02.f5.local nginxedge03.f5.local
+service ssh reload
 ```
 9. On the primary node, create file /etc/nginx-sync.conf
 ```shell
@@ -1257,12 +1252,13 @@ sudo nano /etc/nginx-sync.conf
 NODES="nginxedge02.f5.local nginxedge03.f5.local"
 CONFPATHS="/etc/nginx/nginx.conf /etc/nginx/conf.d /etc/nginx/stream.d"
 ```
-11. Synchronize configuration and reload NGINX+ on the peers
+11. Run the following command as root user to synchronize configuration and reload NGINX+ on the peers
 ```shell
-nginx-sync.sh -h
+nginx-sync.sh
 ```
-
-
+12. To confirm successful sync, ssh to nginxedge02 and nginxedge03 to confirm .conf files.  You can also browse to the NGINX+ dashboard pages from the client browser:
+- http://10.1.1.5:8080/dashboard.html
+- http://10.1.1.6:8080/dashboard.html
 
 ## NGINX_Management_Suite
 > WORK IN PROGRESS.  
