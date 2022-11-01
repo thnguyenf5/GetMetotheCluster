@@ -1387,3 +1387,47 @@ curl -k -u admin:Vm8asdfjk3e9r52j23khqgfakaG https://10.1.1.12/api/platform/v1/s
 ```
 5. You can also launch a new web brower from the RDP client and browse to the following page:
 - https://10.1.1.12/ui/instances
+
+
+## OPTIONAL - Multiple Ingresses
+1. Deploy another application - hipster online store
+2. 
+```shell
+git clone https://github.com/GoogleCloudPlatform/microservices-demo.git
+```
+3. Modify manifest to remove frontend service LoadBalancer - we will use NGINX+ instead
+```shell
+nano microservices-demo/release/kubernetes-manifests.yaml
+```
+4. Delete the following lines:
+```shell
+apiVersion: v1
+kind: Service
+metadata: 
+  name: frontend-external
+spec:  
+  type: LoadBalancer  
+  selector:    
+    app: frontend  
+  ports:  
+  - name: http    
+    port: 80    
+    targetPort: 8080
+---
+```
+5. Create Namespace for new app
+```shell
+kubectl create ns online-boutique-app
+```
+6. Deploy app
+```shell
+kubectl -n online-boutique-app apply -f microservices-demo/release/kubernetes-manifests.yaml
+```
+7. Get status of pods
+```shell
+kubectl get pods -n online-boutique-app
+```
+8. Get services
+```shell
+kubectl get services -n online-boutique-app
+```

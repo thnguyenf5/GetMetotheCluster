@@ -58,7 +58,7 @@ spec:
         env:
         - name: POD_NAMESPACE
           valueFrom:
-                      fieldRef:
+            fieldRef:
               fieldPath: metadata.namespace
         - name: POD_NAME
           valueFrom:
