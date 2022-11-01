@@ -1260,7 +1260,130 @@ nginx-sync.sh
 - http://10.1.1.5:8080/dashboard.html
 - http://10.1.1.6:8080/dashboard.html
 
+### High Availability based on keepalived and VRRP
+
+- https://docs.nginx.com/nginx/admin-guide/high-availability/ha-keepalived/
+- https://docs.nginx.com/nginx/admin-guide/high-availability/ha-keepalived-nodes/ 
+
 ## NGINX_Management_Suite
 > WORK IN PROGRESS.  
 > In this section of the lab, you will be configuring NGINX Management Suite (NMS).  First you will install NMS 2.x.  Then you will install the NMS agent on the NGINX+ Edge instances and register to the NMS server.  Finally you will integrate NGINX+ Ingress controller with NMS.  
 
+### Install NGINX+
+> The NGINX Management Suite platform uses NGINX as a frontend proxy and for managing user access.  Refer to the earlier section of this lab on steps to install NGINX+.
+1. Confirm NGINX+ installation.
+```shell
+nginx -v
+```
+### Install ClickHousone
+> NGINX Management Suite uses ClickHouse as a datastore for configuration settings and analytics information such as metrics, events, and alerts. Additional documentation can be found here:
+- https://clickhouse.com/docs/en/install/
+1. Deploy ClickHouse as a self-managed installation using the LTS package.  
+```shell
+sudo apt-get install -y apt-transport-https ca-certificates dirmngr
+
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 8919F6BD2B48D754
+
+echo "deb https://packages.clickhouse.com/deb lts main" | sudo tee \
+    /etc/apt/sources.list.d/clickhouse.list
+
+sudo apt-get update
+
+sudo apt-get install -y clickhouse-server clickhouse-client
+```
+2. Verify ClickHouse is running.
+```shell
+sudo service clickhouse-server status
+```
+3. Enable ClickHouse so that it starts automatically if the server is restarted.
+```shell
+sudo systemctl enable clickhouse-server
+```
+### Add NGINX Management Suite Repo to Apt
+> To install NGINX Management Suite, you need to add the official NGINX Management Suite repo to pull the packages from. To access the NGINX Management Suite repo, you’ll need to add appropriate cert and key files to the etc/ssl/nginx folder.
+1. Log in to MyF5, or follow the link in the trial activation email, and download the NMS repo .crt and .key files.
+2. Edit nginx-repo.key
+```shell
+sudo nano /etc/ssl/nginx/nginx-repo.key
+```
+3. Replace the contents with the NMS repo key contents.
+4. Edit nginx-repo.crt
+```shell
+sudo nano /etc/ssl/nginx/nginx-repo.crt
+```
+5. Replace the contents with the NMS repo key contents.
+6. Add the NGINX Management Suite Apt repository.
+```shell
+printf "deb https://pkgs.nginx.com/nms/ubuntu `lsb_release -cs` nginx-plus\n" | sudo tee /etc/apt/sources.list.d/nms.list
+
+sudo wget -q -O /etc/apt/apt.conf.d/90pkgs-nginx https://cs.nginx.com/static/files/90pkgs-nginx
+```
+2. Add the NGINX Signing Key to Apt repository.
+```shell
+wget -O /tmp/nginx_signing.key https://cs.nginx.com/static/keys/nginx_signing.key
+
+sudo apt-key add /tmp/nginx_signing.key
+```
+### Install Instance Manager
+>Important:
+The Instance Manager's administrator username and generated password are displayed in the terminal during the installation. You should make a note of the password and store it securely.
+1. Install the latest version of the Instance Manager module.  
+```shell
+sudo apt-get update
+
+sudo apt-get install -y nms-instance-manager
+```
+2. NOTE the output for adminstrative credentials. Below is a sample output:
+```shell
+# Start NGINX Management Suite services
+sudo systemctl start nms
+
+Admin username: admin
+
+Admin password: Vm8asdfjk3e9r52j23khqgfakaG
+```
+3. Enable the NGINX Management Suite services
+```shell
+sudo systemctl enable nms
+sudo systemctl enable nms-core
+sudo systemctl enable nms-dpm
+sudo systemctl enable nms-ingestion
+sudo systemctl enable nms-integrations
+```
+4. Start the NGINX Management Suite Services
+```shell
+sudo systemctl start nms
+```
+5. Restart NGINX+ web server
+```shell
+sudo systemctl restart nginx
+```
+6. Confirm that NGINX Management Suite from the client's RDP web browser.  Login with the credentials 
+- https://10.1.1.12/ui/
+### License Instance Manager - Add a License
+1. Access MyF5 Customer Portal from client's RDP web browser and download the NGINX Management Suite .lic file. The default save location will be /home/ubuntu/Downloads/
+2. Login to NGINX Management Suite 
+- https://10.1.1.12/ui/
+3. Click on the Settings gear icon on the left hand side.
+4. On the Settings sidebar, select Licenses and Upload License.
+5. Locate the .lic file that you downloaded to your system, then select Upload.
+### Install Agent on NGINX Edge Servers
+> NMS requires agent on the NGINX instances to report telemetry back to the NMS environment.  The agent can be installed on an insecure connection or a secure connection.  
+1. from the command line on nginxedge01.f5.local via an unsecure connection.  
+```shell
+curl -k https://10.1.1.12/install/nginx-agent | sudo sh
+```
+2. Start the nginx agent software.
+```shell
+sudo systemctl start nginx-agent
+```
+3. Enable the NGINX Agent to start on boot
+```shell
+sudo systemctl enable nginx-agent
+```
+4. Verfiy the NGINX Agent is Running and registered.  From nginxedge01.f5.local command line.  
+```shell
+curl -k -u admin:Vm8asdfjk3e9r52j23khqgfakaG https://10.1.1.12/api/platform/v1/systems | jq
+```
+5. You can also launch a new web brower from the RDP client and browse to the following page:
+- https://10.1.1.12/ui/instances
