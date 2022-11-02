@@ -1390,8 +1390,12 @@ curl -k -u admin:Vm8asdfjk3e9r52j23khqgfakaG https://10.1.1.12/api/platform/v1/s
 
 
 ## OPTIONAL - Multiple Ingresses
+### Online Boutique App
+> For additional documentation:
+- https://github.com/GoogleCloudPlatform/microservices-demo
+
 1. Deploy another application - hipster online store
-2. 
+2. Clone github repo
 ```shell
 git clone https://github.com/GoogleCloudPlatform/microservices-demo.git
 ```
@@ -1430,4 +1434,19 @@ kubectl get pods -n online-boutique-app
 8. Get services
 ```shell
 kubectl get services -n online-boutique-app
+```
+### New NGINX Ingress Controller
+> For more information:
+- https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-manifests/
+1. make directory
+```shell
+mkdir online-boutique-nginx-ingress
+```
+2. clone github
+```shell
+git clone https://github.com/nginxinc/kubernetes-ingress.git --branch v2.3.1
+```
+3. Edit namespace in NS and SA file.
+```shell
+nano kubernetes-ingress/deployments/common/ns-and-sa.yaml
 ```
