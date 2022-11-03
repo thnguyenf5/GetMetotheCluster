@@ -1,10 +1,11 @@
 apiVersion: k8s.nginx.org/v1
 kind: VirtualServer
 metadata:
-  name: arcadia
+  name: arcadia-virtualserver
   namespace: arcadia
 spec:
   host: arcadia-finance.f5.local
+  ingressClassName: nginx
   upstreams:
     - name: main
       service: main

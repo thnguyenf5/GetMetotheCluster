@@ -1,0 +1,16 @@
+apiVersion: k8s.nginx.org/v1
+kind: VirtualServer
+metadata:
+  name: online-boutique-virtualserver
+  namespace: online-boutique-app
+spec:
+  host: online-boutique.f5.local
+  ingressClassName: online-boutique-nginx
+  upstreams:
+    - name: frontend
+      service: frontend
+      port: 80
+  routes:
+    - path: /
+      action:
+        pass: frontend
