@@ -1729,7 +1729,7 @@ ping -c 2 online-boutique-nginx-ingress-svc.online-boutique-nginx-ingress.svc.cl
 - https://istio.io/latest/docs/setup/getting-started/
 - https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-manifests/
 - https://istio.io/latest/docs/setup/additional-setup/config-profiles/ 
-- You will need to create a new namespace 
+
 ### Deploy Istio
 1. Dowload Istio package
 ```shell
@@ -1766,7 +1766,7 @@ kubectl get services --all-namespaces
 ```
 
 ### Install new NGINX Ingress for Istio
-1. make directory
+1. make directory for istio nginx ingress manifest
 ```shell
 mkdir istio-nginx-ingress
 ```
@@ -1791,11 +1791,11 @@ metadata:
   name: nginx-ingress 
   namespace: istio-nginx-ingress 
 ```
-5. Deploy manifest
+5. Deploy manifest to create new namespace and service account
 ```shell
 kubectl apply -f ns-and-sa.yaml
 ```
-6. Enable Sidecar Access to new nginx ingress
+6. Enable Sidecar Access to new istio nginx ingress namespace
 ```shell
 kubectl label namespace istio-nginx-ingress istio-injection=enabled
 ```
