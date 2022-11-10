@@ -1987,7 +1987,7 @@ kubectl apply -f nginx-plus-ingress.yaml
 ```shell
 kubectl get pods --namespace=istio-nginx-ingress
 ```
-### New NGINX+ Ingress Service
+### New NGINX+ Ingress Service for Istio NGINX Ingress Controller
 1. Create headless NGINX service for istio ingress gateway:
 ```shell
 nano istio-nginx-ingress-svc.yaml 
@@ -2022,7 +2022,7 @@ kubectl apply -f istio-nginx-ingress-svc.yaml
 ```shell
 kubectl get services --all-namespaces -o wide
 ```
-### Expose Online Boutique via Ingress 
+### Expose Bookinfo Application via Ingress 
 > you will use IngressClassName spec to define the use of the new Ingress Controller deployment
 1. Create bookinfo-ingress-virtualserver.yaml
 ```shell
@@ -2055,6 +2055,34 @@ kubectl apply -f bookinfo-ingress-virtualserver.yaml
 ```shell
 kubectl get virtualserver --all-namespaces
 ```
+### Update NGINX+ L7 configuration
+1. Create new directory inside /etc/nginx/http.d
+```shell
+sudo mkdir /etc/nginx/http.d/bookinfo
+```
+2. Create new upstream.conf file
+```shell
+upstream istio-nginx-ingress-svc {
+  zone istio-nginx-ingress 256k;
+  server istio-nginx-ingress-svc.istio-nginx-ingress.svc.cluster.local service=http resolve;
+}
+```
+3. Create new server.conf file
+```shell
+server {
+    server_name bookinfo.f5.local;
+    access_log /var/log/nginx/bookinfo.f5.local.access.log main;
+    location / {
+        proxy_pass http://istio-nginx-ingress-svc;
+        status_zone bookinfo.f5.local;
+        health_check;
+        proxy_set_header Host bookinfo.f5.local;
+    }
+}
+```
+4. Validate NGINX config and reload
+```
+sudo nginx -t && sudo nginx -s reload
 
 
 
