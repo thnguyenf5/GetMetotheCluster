@@ -1,0 +1,16 @@
+apiVersion: k8s.nginx.org/v1
+kind: VirtualServer
+metadata:
+  name: bookinfo-virtualserver
+  namespace: bookinfo
+spec:
+  host: bookinfo.f5.local
+  ingressClassName: istio-nginx
+  upstreams:
+    - name: productpage 
+      service: productpage 
+      port: 9080
+  routes:
+    - path: /
+      action:
+        pass: productpage
