@@ -1723,11 +1723,9 @@ ping -c 2 nginx-ingress-svc.nginx-ingress.svc.cluster.local
 ping -c 2 online-boutique-nginx-ingress-svc.online-boutique-nginx-ingress.svc.cluster.local
 ```
 
-### Deploy NGINX Ingress Container with Istio
+### Deploy NGINX Edge Server with Istio
 > For more information see:
-- https://docs.nginx.com/nginx-ingress-controller/tutorials/nginx-ingress-istio/
 - https://istio.io/latest/docs/setup/getting-started/
-- https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-manifests/
 - https://istio.io/latest/docs/setup/additional-setup/config-profiles/ 
 
 ### Deploy Istio
@@ -1743,6 +1741,83 @@ export PATH=$PWD/bin:$PATH
 3. Install istio with minimal profile (includes just istiod and no istio ingress gateways)
 ```shell
 istioctl install --set profile=minimal -y
+```
+4. Create a dedicated namespace for the istio ingress gateway.  This will enable control plane separation.
+```shell
+kubectl create namespace istio-ingress
+```
+5. Enable istio sidecar injection for istio-ingress namespace
+```shell
+kubectl label namespace istio-ingress istio-injection=enabled
+```
+6. Configure Istio Ingress Gateway service and deployment.  Ingress Gateway service will be deployed as a headless Cluster IP deployment.
+```shell
+nano istio-ingress-gateway.yaml
+```
+```shell
+apiVersion: v1
+kind: Service
+metadata:
+  name: istio-ingressgateway
+  namespace: istio-ingress
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    istio: ingressgateway
+  ports:
+  - port: 80
+    name: http
+  - port: 443
+    name: https
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: istio-ingressgateway
+  namespace: istio-ingress
+spec:
+  selector:
+    matchLabels:
+      istio: ingressgateway
+  template:
+    metadata:
+      annotations:
+        # Select the gateway injection template (rather than the default sidecar template)
+        inject.istio.io/templates: gateway
+      labels:
+        # Set a unique label for the gateway. This is required to ensure Gateways can select this workload
+        istio: ingressgateway
+        # Enable gateway injection. If connecting to a revisioned control plane, replace with "istio.io/rev: revision-name"
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+      - name: istio-proxy
+        image: auto # The image will automatically update each time the pod starts.
+---
+# Set up roles to allow reading credentials for TLS
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: istio-ingressgateway-sds
+  namespace: istio-ingress
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "watch", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: istio-ingressgateway-sds
+  namespace: istio-ingress
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: istio-ingressgateway-sds
+subjects:
+- kind: ServiceAccount
+  name: default
 ```
 ### Deploy Bookinfo Application
 - https://istio.io/latest/docs/examples/bookinfo/
@@ -1764,7 +1839,10 @@ kubectl get pods --all-namespaces
 
 kubectl get services --all-namespaces 
 ```
-
+5. Ensure service is accessible from inside of the cluster
+```shell
+kubectl exec "$(kubectl get pod -l app=ratings -o jsonpath='{.items[0].metadata.name}' -n bookinfo)" -n bookinfo -c ratings -- curl -sS productpage:9080/productpage | grep -o "<title>.*</title>" 
+```
 ### Install new NGINX Ingress for Istio
 1. make directory for istio nginx ingress manifest
 ```shell
