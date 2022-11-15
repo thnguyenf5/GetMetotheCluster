@@ -1846,293 +1846,172 @@ kubectl exec "$(kubectl get pod -l app=ratings -o jsonpath='{.items[0].metadata.
 ### Install new NGINX Ingress for Istio
 1. make directory for istio nginx ingress manifest
 ```shell
-mkdir istio-nginx-ingress
+mkdir istio-ingresscontroller
 ```
 2. change directory
 ```shell
-cd istio-nginx-ingress
+cd istio-ingresscontroller
 ```
-3. create namespace in NS and SA file.
+3. create namespace 
 ```shell
-nano ns-and-sa.yaml
+ kubectl create namespace istio-ingress
 ```
-4. Update contents:
+4. Enable Sidecar Access to new istio nginx ingress namespace
 ```shell
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: istio-nginx-ingress 
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: nginx-ingress 
-  namespace: istio-nginx-ingress 
+kubectl label namespace istio-ingress istio-injection=enabled
 ```
-5. Deploy manifest to create new namespace and service account
-```shell
-kubectl apply -f ns-and-sa.yaml
-```
-6. Enable Sidecar Access to new istio nginx ingress namespace
-```shell
-kubectl label namespace istio-nginx-ingress istio-injection=enabled
-```
-7. Confirm Istio Labels
+5. Confirm Istio Labels
 ```shell
 kubectl get namespaces -A --show-labels
 ```
-8. create rbac file to bind new service account to existing clusterrole created from default ingress:
+6. Create deployment manifest:
 ```shell
-nano rbac.yaml
+nano istio-ingressgateway-deployment.yaml 
 ```
 7. Update contents:
-```shell
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: istio-nginx-ingress
-subjects:
-- kind: ServiceAccount
-  name: nginx-ingress
-  namespace: istio-nginx-ingress
-roleRef:
-  kind: ClusterRole
-  name: nginx-ingress
-  apiGroup: rbac.authorization.k8s.io
-```
-8. deploy manifest
-```shell
-kubectl apply -f rbac.yaml
-```
-9. create default server secret for new ingress
-```shell
-nano default-server-secret.yaml
-```
-10. Update contents
-```shell
-apiVersion: v1
-kind: Secret
-metadata:
-  name: default-server-secret
-  namespace: istio-nginx-ingress 
-type: kubernetes.io/tls
-data:
-  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUN2akNDQWFZQ0NRREFPRjl0THNhWFhEQU5CZ2txaGtpRzl3MEJBUXNGQURBaE1SOHdIUVlEVlFRRERCWk8KUjBsT1dFbHVaM0psYzNORGIyNTBjbTlzYkdWeU1CNFhEVEU0TURreE1qRTRNRE16TlZvWERUSXpNRGt4TVRFNApNRE16TlZvd0lURWZNQjBHQTFVRUF3d1dUa2RKVGxoSmJtZHlaWE56UTI5dWRISnZiR3hsY2pDQ0FTSXdEUVlKCktvWklodmNOQVFFQkJRQURnZ0VQQURDQ0FRb0NnZ0VCQUwvN2hIUEtFWGRMdjNyaUM3QlBrMTNpWkt5eTlyQ08KR2xZUXYyK2EzUDF0azIrS3YwVGF5aGRCbDRrcnNUcTZzZm8vWUk1Y2Vhbkw4WGM3U1pyQkVRYm9EN2REbWs1Qgo4eDZLS2xHWU5IWlg0Rm5UZ0VPaStlM2ptTFFxRlBSY1kzVnNPazFFeUZBL0JnWlJVbkNHZUtGeERSN0tQdGhyCmtqSXVuektURXUyaDU4Tlp0S21ScUJHdDEwcTNRYzhZT3ExM2FnbmovUWRjc0ZYYTJnMjB1K1lYZDdoZ3krZksKWk4vVUkxQUQ0YzZyM1lma1ZWUmVHd1lxQVp1WXN2V0RKbW1GNWRwdEMzN011cDBPRUxVTExSakZJOTZXNXIwSAo1TmdPc25NWFJNV1hYVlpiNWRxT3R0SmRtS3FhZ25TZ1JQQVpQN2MwQjFQU2FqYzZjNGZRVXpNQ0F3RUFBVEFOCkJna3Foa2lHOXcwQkFRc0ZBQU9DQVFFQWpLb2tRdGRPcEsrTzhibWVPc3lySmdJSXJycVFVY2ZOUitjb0hZVUoKdGhrYnhITFMzR3VBTWI5dm15VExPY2xxeC9aYzJPblEwMEJCLzlTb0swcitFZ1U2UlVrRWtWcitTTFA3NTdUWgozZWI4dmdPdEduMS9ienM3bzNBaS9kclkrcUI5Q2k1S3lPc3FHTG1US2xFaUtOYkcyR1ZyTWxjS0ZYQU80YTY3Cklnc1hzYktNbTQwV1U3cG9mcGltU1ZmaXFSdkV5YmN3N0NYODF6cFErUyt1eHRYK2VBZ3V0NHh3VlI5d2IyVXYKelhuZk9HbWhWNThDd1dIQnNKa0kxNXhaa2VUWXdSN0diaEFMSkZUUkk3dkhvQXprTWIzbjAxQjQyWjNrN3RXNQpJUDFmTlpIOFUvOWxiUHNoT21FRFZkdjF5ZytVRVJxbStGSis2R0oxeFJGcGZnPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
-  tls.key: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcEFJQkFBS0NBUUVBdi91RWM4b1JkMHUvZXVJTHNFK1RYZUprckxMMnNJNGFWaEMvYjVyYy9XMlRiNHEvClJOcktGMEdYaVN1eE9ycXgrajlnamx4NXFjdnhkenRKbXNFUkJ1Z1B0ME9hVGtIekhvb3FVWmcwZGxmZ1dkT0EKUTZMNTdlT1l0Q29VOUZ4amRXdzZUVVRJVUQ4R0JsRlNjSVo0b1hFTkhzbysyR3VTTWk2Zk1wTVM3YUhudzFtMApxWkdvRWEzWFNyZEJ6eGc2clhkcUNlUDlCMXl3VmRyYURiUzc1aGQzdUdETDU4cGszOVFqVUFQaHpxdmRoK1JWClZGNGJCaW9CbTVpeTlZTW1hWVhsMm0wTGZzeTZuUTRRdFFzdEdNVWozcGJtdlFmazJBNnljeGRFeFpkZFZsdmwKMm82MjBsMllxcHFDZEtCRThCay90elFIVTlKcU56cHpoOUJUTXdJREFRQUJBb0lCQVFDZklHbXowOHhRVmorNwpLZnZJUXQwQ0YzR2MxNld6eDhVNml4MHg4Mm15d1kxUUNlL3BzWE9LZlRxT1h1SENyUlp5TnUvZ2IvUUQ4bUFOCmxOMjRZTWl0TWRJODg5TEZoTkp3QU5OODJDeTczckM5bzVvUDlkazAvYzRIbjAzSkVYNzZ5QjgzQm9rR1FvYksKMjhMNk0rdHUzUmFqNjd6Vmc2d2szaEhrU0pXSzBwV1YrSjdrUkRWYmhDYUZhNk5nMUZNRWxhTlozVDhhUUtyQgpDUDNDeEFTdjYxWTk5TEI4KzNXWVFIK3NYaTVGM01pYVNBZ1BkQUk3WEh1dXFET1lvMU5PL0JoSGt1aVg2QnRtCnorNTZud2pZMy8yUytSRmNBc3JMTnIwMDJZZi9oY0IraVlDNzVWYmcydVd6WTY3TWdOTGQ5VW9RU3BDRkYrVm4KM0cyUnhybnhBb0dCQU40U3M0ZVlPU2huMVpQQjdhTUZsY0k2RHR2S2ErTGZTTXFyY2pOZjJlSEpZNnhubmxKdgpGenpGL2RiVWVTbWxSekR0WkdlcXZXaHFISy9iTjIyeWJhOU1WMDlRQ0JFTk5jNmtWajJTVHpUWkJVbEx4QzYrCk93Z0wyZHhKendWelU0VC84ajdHalRUN05BZVpFS2FvRHFyRG5BYWkyaW5oZU1JVWZHRXFGKzJyQW9HQkFOMVAKK0tZL0lsS3RWRzRKSklQNzBjUis3RmpyeXJpY05iWCtQVzUvOXFHaWxnY2grZ3l4b25BWlBpd2NpeDN3QVpGdwpaZC96ZFB2aTBkWEppc1BSZjRMazg5b2pCUmpiRmRmc2l5UmJYbyt3TFU4NUhRU2NGMnN5aUFPaTVBRHdVU0FkCm45YWFweUNweEFkREtERHdObit3ZFhtaTZ0OHRpSFRkK3RoVDhkaVpBb0dCQUt6Wis1bG9OOTBtYlF4VVh5YUwKMjFSUm9tMGJjcndsTmVCaWNFSmlzaEhYa2xpSVVxZ3hSZklNM2hhUVRUcklKZENFaHFsV01aV0xPb2I2NTNyZgo3aFlMSXM1ZUtka3o0aFRVdnpldm9TMHVXcm9CV2xOVHlGanIrSWhKZnZUc0hpOGdsU3FkbXgySkJhZUFVWUNXCndNdlQ4NmNLclNyNkQrZG8wS05FZzFsL0FvR0FlMkFVdHVFbFNqLzBmRzgrV3hHc1RFV1JqclRNUzRSUjhRWXQKeXdjdFA4aDZxTGxKUTRCWGxQU05rMXZLTmtOUkxIb2pZT2pCQTViYjhibXNVU1BlV09NNENoaFJ4QnlHbmR2eAphYkJDRkFwY0IvbEg4d1R0alVZYlN5T294ZGt5OEp0ek90ajJhS0FiZHd6NlArWDZDODhjZmxYVFo5MWpYL3RMCjF3TmRKS2tDZ1lCbyt0UzB5TzJ2SWFmK2UwSkN5TGhzVDQ5cTN3Zis2QWVqWGx2WDJ1VnRYejN5QTZnbXo5aCsKcDNlK2JMRUxwb3B0WFhNdUFRR0xhUkcrYlNNcjR5dERYbE5ZSndUeThXczNKY3dlSTdqZVp2b0ZpbmNvVlVIMwphdmxoTUVCRGYxSjltSDB5cDBwWUNaS2ROdHNvZEZtQktzVEtQMjJhTmtsVVhCS3gyZzR6cFE9PQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQo=
-```
-11. deploy manifest
-```shell
-kubectl apply -f default-server-secret.yaml
-```
-12. create config map for new ingress
-```shell
-nano nginx-config.yaml
-```
-13. Update Contents
-```shell
-kind: ConfigMap
-apiVersion: v1
-metadata:
-  name: nginx-config
-  namespace: istio-nginx-ingress 
-data:
-```
-14. deploy manifest
-```shell
-kubectl apply -f nginx-config.yaml
-```
-15. Edit manifest for ingress class
-```shell
-nano ingress-class.yaml
-```
-16. Update contents of file
-```shell
-apiVersion: networking.k8s.io/v1
-kind: IngressClass
-metadata:
-  name: istio-nginx
-spec:
-  controller: nginx.org/ingress-controller
-```
-17. Deploy manifest
-``` shell
-kubectl apply -f ingress-class.yaml
-```
-18. Create secret for JWT authentication to private NGINX repo:
-```shell
-kubectl create secret docker-registry regcred --docker-server=private-registry.nginx.com --docker-username=<JWT Token> --docker-password=none -n istio-nginx-ingress
-```
-19. Confirm details of the secret
-```shell
-kubectl get secret regcred --output=yaml -n istio-nginx-ingress 
-```
-20. Create deployment manifest of nginx-plus-ingress pods
-```shell
-nano nginx-plus-ingress.yaml
-```
-21. Update contents of file. (NOTE we will include annotations to ensure Istio Compatability)
 ```shell
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx-ingress
-  namespace: istio-nginx-ingress 
+  name: istio-ingressgateway
+  namespace: istio-ingress
 spec:
-  replicas: 3
   selector:
     matchLabels:
-      app: nginx-ingress
+      istio: ingressgateway
   template:
     metadata:
-      labels:
-        app: nginx-ingress
       annotations:
-        traffic.sidecar.istio.io/includeInboundPorts: ""
-        traffic.sidecar.istio.io/excludeInboundPorts: "80,443" 
-        traffic.sidecar.istio.io/excludeOutboundIPRanges: "10.1.1.0/24"
-        sidecar.istio.io/inject: 'true'
-       #prometheus.io/scrape: "true"
-       #prometheus.io/port: "9113"
-       #prometheus.io/scheme: http
+        # Select the gateway injection template (rather than the default sidecar template)
+        inject.istio.io/templates: gateway
+      labels:
+        # Set a unique label for the gateway. This is required to ensure Gateways can select this workload
+        istio: ingressgateway
+        # Enable gateway injection. If connecting to a revisioned control plane, replace with "istio.io/rev: revision-name"
+        sidecar.istio.io/inject: "true"
     spec:
-      serviceAccountName: nginx-ingress
-      automountServiceAccountToken: true
-      imagePullSecrets:
-      - name: regcred
       containers:
-      - image: private-registry.nginx.com/nginx-ic/nginx-plus-ingress:2.3.1
-        imagePullPolicy: IfNotPresent
-        name: istio-nginx-plus-ingress
-        ports:
-        - name: http
-          containerPort: 80
-        - name: https
-          containerPort: 443
-        - name: readiness-port
-          containerPort: 8081
-        - name: prometheus
-          containerPort: 9113
-        readinessProbe:
-          httpGet:
-            path: /nginx-ready
-            port: readiness-port
-          periodSeconds: 1
-        resources:
-          requests:
-            cpu: "100m"
-            memory: "128Mi"
-         #limits:
-         #  cpu: "1"
-         #  memory: "1Gi"
-        securityContext:
-          allowPrivilegeEscalation: true
-          runAsUser: 101 #nginx
-          runAsNonRoot: true
-          capabilities:
-            drop:
-            - ALL
-            add:
-            - NET_BIND_SERVICE
-        env:
-        - name: POD_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        - name: POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        args:
-          - -nginx-plus
-          - -nginx-configmaps=$(POD_NAMESPACE)/nginx-config
-          - -default-server-tls-secret=$(POD_NAMESPACE)/default-server-secret
-          - -ingress-class=istio-nginx
-         #- -enable-cert-manager
-         #- -enable-external-dns
-         #- -enable-app-protect
-         #- -enable-app-protect-dos
-         #- -v=3 # Enables extensive logging. Useful for troubleshooting.
-         #- -report-ingress-status
-         #- -external-service=nginx-ingress
-         #- -enable-prometheus-metrics
-         #- -global-configuration=$(POD_NAMESPACE)/nginx-configuration
+      - name: istio-proxy
+        image: auto # The image will automatically update each time the pod starts.
+---
+# Set up roles to allow reading credentials for TLS
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: istio-ingressgateway-sds
+  namespace: istio-ingress
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "watch", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: istio-ingressgateway-sds
+  namespace: istio-ingress
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: istio-ingressgateway-sds
+subjects:
+- kind: ServiceAccount
+  name: default
 ```
-22. Deploy manifest
+8. deploy
 ```shell
-kubectl apply -f nginx-plus-ingress.yaml
+kubectl apply -f istio-ingressgateway-deployment.yaml 
 ```
-23. Check status of pods
+9. create service manifest
 ```shell
-kubectl get pods --namespace=istio-nginx-ingress
+nano istio-ingressgateway-svc.yaml
 ```
-### New NGINX+ Ingress Service for Istio NGINX Ingress Controller
-1. Create headless NGINX service for istio ingress gateway:
-```shell
-nano istio-nginx-ingress-svc.yaml 
-```
-2. Update contents of file
+10. edit
 ```shell
 apiVersion: v1
 kind: Service
 metadata:
-  name: istio-nginx-ingress-svc
-  namespace: istio-nginx-ingress
+  name: istio-ingressgateway
+  namespace: istio-ingress
 spec:
   type: ClusterIP
   clusterIP: None
+  selector:
+    istio: ingressgateway
   ports:
   - port: 80
-    targetPort: 80
-    protocol: TCP
     name: http
   - port: 443
-    targetPort: 443
-    protocol: TCP
     name: https
-  selector:
-    app: nginx-ingress
 ```
-3. Deploy manifest
+11. Deployment service manifest
 ```shell
-kubectl apply -f istio-nginx-ingress-svc.yaml  
+kubectl apply -f istio-ingressgateway-svc.yaml
 ```
-4. Confirm new NGINX+ ingress service running for istio-ingress-gateway
+12. Get services
 ```shell
-kubectl get services --all-namespaces -o wide
+kubectl get services -n istio-ingress
 ```
+
+
 ### Expose Bookinfo Application via Ingress 
 > you will use IngressClassName spec to define the use of the new Ingress Controller deployment
-1. Create bookinfo-ingress-virtualserver.yaml
+1. Create bookinfo-istiogateway.yaml
 ```shell
-nano bookinfo-ingress-virtualserver.yaml
+cd istio-ingresscontroller
+nano bookinfo-istiogateway.yaml
 ```
 2. Edit Contents of manifest
 ```shell
-apiVersion: k8s.nginx.org/v1
-kind: VirtualServer
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
 metadata:
-  name: bookinfo-virtualserver
+  name: bookinfo-gateway
   namespace: bookinfo
 spec:
-  host: bookinfo.f5.local
-  ingressClassName: istio-nginx
-  upstreams:
-    - name: productpage 
-      service: productpage 
-      port: 9080
-  routes:
-    - path: /
-      action:
-        pass: productpage
+  selector:
+    istio: ingressgateway # use istio default controller
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "bookinfo.f5.local"
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: bookinfo
+  namespace: bookinfo
+spec:
+  hosts:
+  - "bookinfo.f5.local"
+  gateways:
+  - bookinfo-gateway
+  http:
+  - match:
+    - uri:
+        exact: /productpage
+    - uri:
+        prefix: /static
+    - uri:
+        exact: /login
+    - uri:
+        exact: /logout
+    - uri:
+        prefix: /api/v1/products
+    route:
+    - destination:
+        host: productpage
+        port:
+          number: 9080
 ```
 3. Deploy manifest
 ```shell
-kubectl apply -f bookinfo-ingress-virtualserver.yaml
+kubectl apply -f bookinfo-istiogateway.yaml
 ```
-4. Confirm virtual server deployment
-```shell
-kubectl get virtualserver --all-namespaces
-```
+
 ### Update NGINX+ L7 configuration
 1. Create new directory inside /etc/nginx/http.d
 ```shell
