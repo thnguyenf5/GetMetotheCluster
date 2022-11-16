@@ -21,6 +21,14 @@ Client Desktop
 - user: ubuntu
 - pass: f5agility!
 
+Observability Lab Details
+- 10.1.1.13 central-prometheus01.f5.local 
+- 10.1.1.14 central-grafana01.f5.local 
+
+- Linux user: user01
+- Linux pass: f5agility!
+
+
 > UDF blueprint has prerequisite software like containerd and kubectl/kubeadmin/kubelet packages.  This lab also uses local  hostfile for DNS resolution.  UDF blueprint is listed as "NGINX Ingress Controller - Calico CNI - Get me to the Cluster"
 
 > Additional changes that were made from the white paper:
@@ -48,9 +56,9 @@ Client Desktop
 - [NGINX+ Edge L4 configuration](#NGINX_Edge_L4_configuration)
 - [NGINX+ HA configurations](#NGINX_HA_configurations)
 - [NGINX Management Suite](#NGINX_Management_Suite)
-- [Multiple NGINX Ingress Controllers Deployment](#Multiple_NGINX_Ingresses)
-- [NGINX Ingress Controllers and Istio Service Mesh integration](#NGINX_Ingress_with_Istio_Service_Mesh)
-- [NGINX Observability with Prometheus and Grafana](Observability_with_Prometheus_and_Grafana_NGINX_EDGE)
+- [Multiple NGINX Ingress Controllers Deployment](#Multiple_NGINX+_Ingresses)
+- [NGINX+ Ingress Controllers and Istio Service Mesh integration](#NGINX+_Ingress_with_Istio_Service_Mesh)
+- [NGINX+ Observability with Prometheus and Grafana](Observability_with_Prometheus_and_Grafana_NGINX+_EDGE)
 
 
 ---
@@ -1392,7 +1400,8 @@ curl -k -u admin:Vm8asdfjk3e9r52j23khqgfakaG https://10.1.1.12/api/platform/v1/s
 - https://10.1.1.12/ui/instances
 
 
-## Multiple_NGINX_Ingresses
+## Multiple_NGINX+_Ingresses
+>This part of the lab will change the initial NGINX+ Edge Server deployment scenario from an L4 configuration with a single NGINX+ Ingress deployment.  In this optional section, you will learn how to deploy multiple NGINX+ Ingresses running inside of a single cluster in a new namespace.  This will allow additional isolation of resources but will require a change of the NGINX+ Edge Server deployment to switch from an L4 configuration to an L7 configuration.  We will also be deploying a new application in its own dedicated namespace to utilize the new NGINX+ Ingress deployment. 
 ### Online Boutique App
 > For additional documentation:
 - https://github.com/GoogleCloudPlatform/microservices-demo
@@ -1725,25 +1734,150 @@ ping -c 2 nginx-ingress-svc.nginx-ingress.svc.cluster.local
 ```shell
 ping -c 2 online-boutique-nginx-ingress-svc.online-boutique-nginx-ingress.svc.cluster.local
 ```
-3. Remove existing stream.d L4 configurations
-4. Update nginx.conf configuration
+3. Create HTTP L7 configurations in new http.d folder
 ```shell
-
-
+sudo mkdir /etc/nginx/http.d/
 ```
-5. Create HTTP L7 configurations
+4. Create HTTP L7 subfolder for each application mapping to their own individual NGINX+ ingress deployment and a common folder for the DNS resolv configuration.
 ```shell
-
+sudo mkdir /etc/nginx/http.d/finance.f5.local
+sudo mkdir /etc/nginx/http.d/boutique.f5.local
+sudo mkdir /etc/nginx/http.d/common
 ```
-6. 
-7. Confirm nginx syntax and reload
+5. Create DNS resolver configuration
+```shell
+nano /etc/nginx/http.d/common/resolver.conf
+```
+```shell
+resolver 10.96.0.10 valid=10s status_zone=kube-dns;
+```
+7. Create boutique upstream .conf file
+```shell
+nano /etc/nginx/http.d/boutique.f5.local/upstream.conf 
+```
+
+```shell
+upstream online-boutique-nginx-ingress-svc {
+  zone online-boutique-nginx-ingress-svc 256k;
+  server online-boutique-nginx-ingress-svc.online-boutique-nginx-ingress.svc.cluster.local service=http resolve;
+}
+```
+8. Create boutique server.conf file
+```shell
+nano /etc/nginx/http.d/boutique.f5.local/server.conf 
+```
+
+```shell
+server {
+    server_name online-boutique.f5.local;
+    access_log /var/log/nginx/online-boutique.f5.local.access.log main;
+    location / {
+        proxy_pass http://online-boutique-nginx-ingress-svc;
+        status_zone online-boutique.f5.local;
+        health_check;
+        proxy_set_header Host online-boutique.f5.local;
+    }
+}
+```
+9. Create finance upstream.conf file and server.conf file
+``` shell
+nano /etc/nginx/http.d/finance.f5.local/upstream.conf
+```
+
+``` shell
+upstream nginx-ingress-svc {
+  zone nginx-ingress-svc 256k;
+  server nginx-ingress-svc.nginx-ingress.svc.cluster.local service=http resolve;
+}
+```
+
+```shell
+nano /etc/nginx/http.d/finance.f5.local/server.conf
+```
+
+```shell
+server {
+    server_name arcadia-finance.f5.local;
+    access_log /var/log/nginx/arcadia-finance.f5.local.access.log main;
+    location / {
+        proxy_pass http://nginx-ingress-svc;
+        status_zone arcadia-finance.f5.local;
+        health_check;
+        proxy_set_header Host arcadia-finance.f5.local;
+    }
+}
+```
+
+10. Update nginx.conf configuration to comment out the stream.d folder and include http.d folder
+```shell
+nano /etc/nginx/nginx.conf
+```
+
+```shell
+user  nginx;
+worker_processes  auto;
+
+error_log  /var/log/nginx/error.log notice;
+pid        /var/run/nginx.pid;
+
+
+events {
+    worker_connections  1024;
+}
+
+#include /etc/nginx/stream.d/*.conf;
+
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+
+    access_log  /var/log/nginx/access.log  main;
+
+    sendfile        on;
+    #tcp_nopush     on;
+
+    keepalive_timeout  65;
+
+    #gzip  on;
+
+    include /etc/nginx/conf.d/*.conf;
+    include /etc/nginx/http.d/*/*.conf;
+}
+
+
+# TCP/UDP proxy and load balancing block
+#
+#stream {
+    # Example configuration for TCP load balancing
+
+    #upstream stream_backend {
+    #    zone tcp_servers 64k;
+    #    server backend1.example.com:12345;
+    #    server backend2.example.com:12345;
+    #}
+
+    #server {
+    #    listen 12345;
+    #    status_zone tcp_server;
+    #    proxy_pass stream_backend;
+    #}
+#}
+```
+
+11. Confirm nginx syntax and reload
 ```shell
 sudo nginx -t && sudo nginx -s reload
 ```
 
 
-## NGINX_Ingress_with_Istio_Service_Mesh
-### Deploy NGINX Ingress Container with Istio
+## NGINX+_Ingress_with_Istio_Service_Mesh
+### Deploy NGINX+ Ingress Container with Istio
+> In this portion of the lab, you will deploy another NGINX+ Ingress Controller to integrate with Istio Service Mesh.  
 > For more information see:
 - https://docs.nginx.com/nginx-ingress-controller/tutorials/nginx-ingress-istio/
 - https://istio.io/latest/docs/setup/getting-started/
@@ -1785,7 +1919,7 @@ kubectl get pods --all-namespaces
 kubectl get services --all-namespaces 
 ```
 
-### Install new NGINX Ingress for Istio
+### Install new NGINX+ Ingress for Istio
 1. make directory for istio nginx ingress deployment
 ```shell
 mkdir istio-nginx-ingress
@@ -2103,9 +2237,9 @@ server {
 4. Validate NGINX config and reload
 ```
 sudo nginx -t && sudo nginx -s reload
+```
 
-
-## Observability_with_Prometheus_and_Grafana_NGINX_EDGE
+## Observability_with_Prometheus_and_Grafana_NGINX+_EDGE
 
 
 
