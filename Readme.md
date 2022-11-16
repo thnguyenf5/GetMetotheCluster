@@ -161,7 +161,7 @@ sudo calicoctl node status
 ```shell
 cd /home/user01
 ```
-[Return to Table of Contents](Table_of_Contents)
+- [Return to Table of Contents](Table_of_Contents)
 ---
 ## Worker_Nodes_Initialization
 > During this section, you will add the worker nodes to K8's cluster.
@@ -183,7 +183,7 @@ kubectl get nodes -o wide
 
 kubectl get pods --all-namespaces -o wide
 ```
-[Return to Table of Contents](Table_of_Contents)
+- [Return to Table of Contents](Table_of_Contents)
 ---
 ## Calico_iBGP_configuration
 > In this section, you will configure BGP for Calico.
@@ -280,7 +280,7 @@ calicoctl get bgpPeer
 
 sudo calicoctl node status
 ```
-[Return to Table of Contents](Table_of_Contents)
+- [Return to Table of Contents](Table_of_Contents)
 ---
 ## NGINX+_Ingress_Controller_deployment
 > In this section, you will deploy NGINX+ Ingress Controller via a manifest using a JWT token as a deployment.  In order to get your JWT token, log into your myF5 portal and download your JWT token entitlement. Additional documentation can be found here: 
@@ -471,7 +471,7 @@ kubectl apply -f nginx-ingress-svc.yaml
 ```shell
 kubectl get services --all-namespaces -o wide
 ```
-[Return to Table of Contents](Table_of_Contents)
+- [Return to Table of Contents](Table_of_Contents)
 ---
 ## NGINX+_Edge_installation
 > In this section, you will be installing NGINX+ on the edge servers outside of the K8's cluster.  These edge servers will be responible for L4 Load Balancing to the K8's clusters.  In order to complete this section, log into your myF5.com account and download the cert and key for NGINX+.  Additional documentation can be found here:
@@ -532,7 +532,7 @@ nginx -v
 ```
 15. Repeat NGINX+ installation on nginxedge02.f5.local
 16. Repeat NGINX+ installation on nginxedge03.f5.local 
-[Return to Table of Contents](Table_of_Contents)
+- [Return to Table of Contents](Table_of_Contents)
 ---
 ## FRR_installation
 > In this section, you will install FRR package as to enable BGP functionality on the NGINX+ Edge servers.  Additional documentation can be found here: 
@@ -570,7 +570,7 @@ sudo systemctl status frr
 ```
 6. Repeat NGINX+ installation on nginxedge02.f5.local
 7. Repeat NGINX+ installation on nginxedge03.f5.local 
-[Return to Table of Contents](Table_of_Contents)
+- [Return to Table of Contents](Table_of_Contents)
 ---
 ## FRR_iBGP_configuration
 > In this section, you will configure iBGP on the NGINX+ Edge server and build a mesh with the K8's Calico CNI.  
@@ -620,7 +620,7 @@ exit
 5. Repeat BGP configurations step on nginxedge02.f5.local.  Be sure to modify the bgp router-id IP address to 10.1.1.5 and include nginxedge01 and nginxedge03 as peers.
 6. Repeat BGP configurations step on nginxedge03.f5.local.  Be sure to modify the bgp router-id IP address to 10.1.1.6 and include nginxedge01 and nginxedge02 as peers.
 7. Upon completion of this section, the bgp configurations should show all of the NGINX+ edge and K8s nodes connected via BGP.  
-[Return to Table of Contents](Table_of_Contents)
+- [Return to Table of Contents](Table_of_Contents)
 ---
 ## NGINX+_Edge_DNS_resolution
 > In this section, you will setup DNS resolution on the NGINX+ Edge servers to utilize the internal DNS core-dns solution. As part of this lab, we will be advertising the service IP versus the individual pod endpoint ips as shown in the whitepaper. Additional documentation can be found here:
@@ -678,7 +678,7 @@ ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
 ping nginx-ingress-svc.nginx-ingress.svc.cluster.local -c 2
 ```
 10. Repeat steps 6-9 on nginxedge02.f5.local and nginxedge03.f5.local.  
-[Return to Table of Contents](Table_of_Contents)
+- [Return to Table of Contents](Table_of_Contents)
 ---
 ## Deploy_an_App
 > In this section of the lab, you will deploy an example modern application Arcadia Financial application.  This application is composed of 4 services.  Additional information can be found here:
@@ -971,7 +971,7 @@ spec:
 kubectl create -f arcadia-service.yaml
 kubectl get services --namespace=arcadia
 ```
-[Return to Table of Contents](Table_of_Contents)
+- [Return to Table of Contents](Table_of_Contents)
 ---
 ## Expose_an_App_with_NGINX+_Ingress_Controller
 > In the [Deploy an App](#Deploy_an_App) section, you deployed the Arcadia finance app with a internal ClusterIP servicetype.  In order to expose the application, you will now expose the Arcadia Application utilizing the NGINX+ Ingress controller by createing a manifest file and using VirtualServer and VirtualServerRoute Resources.  
@@ -1024,7 +1024,7 @@ kubectl create -f arcadia-virtualserver.yaml
 kubectl get virtualserver arcadia -n arcadia
 ```
 
-[Return to Table of Contents](Table_of_Contents)
+- [Return to Table of Contents](Table_of_Contents)
 ---
 ## NGINX+_Edge_L4_configuration
 > In this part of the lab, we will first enable the NGINX+ Live Activity Monitoring with dashboard.  We will then configure a separate conf file for the stream configurations required to allow the NGINX edge server to the the DNS resolution feature.  This section will have configurations only deployed on NGINX Edge 01.  We will look at HA configuration syncs in a later part of the lab.  Additional documentation can be found here: 
@@ -1233,7 +1233,7 @@ curl -v http://localhost/ --header 'Host:arcadia-finance.f5.local'
 - Browse the web page by clicking around on the website. NOTE the NGINX+ dashboard statistics increasing as you interact with the application.   
 - You can log into the application with creds at http://arcadia-finance.f5.local/trading/login.php (matt:ilovef5)
 
-[Return to Table of Contents](Table_of_Contents)
+- [Return to Table of Contents](Table_of_Contents)
 ---
 ## NGINX+_HA_configurations
 > WORK IN PROGRESS - NOT COMPLETED. Additional documentation can be found here: 
@@ -1294,7 +1294,7 @@ nginx-sync.sh
 - https://docs.nginx.com/nginx/admin-guide/high-availability/ha-keepalived/
 - https://docs.nginx.com/nginx/admin-guide/high-availability/ha-keepalived-nodes/ 
 
-[Return to Table of Contents](Table_of_Contents)
+- [Return to Table of Contents](Table_of_Contents)
 ---
 ## NGINX_Management_Suite
 > In this section of the lab, you will be configuring NGINX Management Suite (NMS).  First you will install NMS 2.x.  Then you will install the NMS agent on the NGINX+ Edge instances and register to the NMS server.  Finally you will integrate NGINX+ Ingress controller with NMS.  
@@ -1418,7 +1418,7 @@ curl -k -u admin:Vm8asdfjk3e9r52j23khqgfakaG https://10.1.1.12/api/platform/v1/s
 5. You can also launch a new web brower from the RDP client and browse to the following page:
 - https://10.1.1.12/ui/instances
 
-[Return to Table of Contents](Table_of_Contents)
+- [Return to Table of Contents](Table_of_Contents)
 ---
 ## Multiple_NGINX_Ingresses
 >This part of the lab will change the initial NGINX+ Edge Server deployment scenario from an L4 configuration with a single NGINX+ Ingress deployment.  In this optional section, you will learn how to deploy multiple NGINX+ Ingresses running inside of a single cluster in a new namespace.  This will allow additional isolation of resources but will require a change of the NGINX+ Edge Server deployment to switch from an L4 configuration to an L7 configuration.  We will also be deploying a new application in its own dedicated namespace to utilize the new NGINX+ Ingress deployment. 
@@ -1894,7 +1894,7 @@ http {
 sudo nginx -t && sudo nginx -s reload
 ```
 
-[Return to Table of Contents](Table_of_Contents)
+- [Return to Table of Contents](Table_of_Contents)
 ---
 ## NGINX_Ingress_with_Istio_Service_Mesh
 ### Deploy NGINX+ Ingress Container with Istio
@@ -2259,7 +2259,7 @@ server {
 ```
 sudo nginx -t && sudo nginx -s reload
 ```
-[Return to Table of Contents](Table_of_Contents)
+- [Return to Table of Contents](Table_of_Contents)
 ---
 ## Observability_with_Prometheus_and_Grafana_NGINX_EDGE
 
@@ -2274,5 +2274,5 @@ https://github.com/nginxinc/nginx-prometheus-exporter
 ## Install Prometheus
 1. Install Prometheus on Ubuntu 22 LTS as docker container
 
-[Return to Table of Contents](Table_of_Contents)
+- [Return to Table of Contents](Table_of_Contents)
 ---
