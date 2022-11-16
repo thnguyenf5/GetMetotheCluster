@@ -1432,6 +1432,7 @@ curl -k -u admin:Vm8asdfjk3e9r52j23khqgfakaG https://10.1.1.12/api/platform/v1/s
 ---
 ## Multiple_NGINX_Ingresses
 >This part of the lab will change the initial NGINX+ Edge Server deployment scenario from an L4 configuration with a single NGINX+ Ingress deployment.  In this optional section, you will learn how to deploy multiple NGINX+ Ingresses running inside of a single cluster in a new namespace.  This will allow additional isolation of resources but will require a change of the NGINX+ Edge Server deployment to switch from an L4 configuration to an L7 configuration.  We will also be deploying a new application in its own dedicated namespace to utilize the new NGINX+ Ingress deployment. 
+![L7-Conceptual](images/L7-conceptual.png)
 ### Online Boutique App
 > For additional documentation:
 - https://github.com/GoogleCloudPlatform/microservices-demo
@@ -2278,6 +2279,8 @@ sudo nginx -t && sudo nginx -s reload
 https://www.nginx.com/blog/how-to-visualize-nginx-plus-with-prometheus-and-grafana/
 
 https://github.com/nginxinc/nginx-prometheus-exporter
+
+https://www.nginx.com/resources/videos/nginx-plus-kubernetes-and-prometheus-gain-insights-into-your-ingress-controller/
 
 ### Enable Prometheus on NGINX Edge Servers
 
