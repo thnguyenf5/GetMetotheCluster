@@ -57,7 +57,7 @@ Observability Lab Details
 - [NGINX+ HA configurations](#NGINX_HA_configurations)
 - [NGINX Management Suite](#NGINX_Management_Suite)
 - [Multiple NGINX Ingress Controllers Deployment](#Multiple_NGINX_Ingresses)
-- [NGINX+ Ingress Controllers and Istio Service Mesh integration](# NGINX_Ingress_with_Istio_Service_Mesh)
+- [NGINX+ Ingress Controllers and Istio Service Mesh integration](#NGINX_Ingress_with_Istio_Service_Mesh)
 - [NGINX+ Observability with Prometheus and Grafana](#Observability_with_Prometheus_and_Grafana_NGINX_EDGE)
 
 
