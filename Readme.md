@@ -2272,16 +2272,16 @@ sudo nginx -t && sudo nginx -s reload
 - [Return to Table of Contents](#Table_of_Contents)
 ---
 ## Observability_with_Prometheus_and_Grafana_NGINX_EDGE
-
+> work in progress
 
 
 https://www.nginx.com/blog/how-to-visualize-nginx-plus-with-prometheus-and-grafana/
 
 https://github.com/nginxinc/nginx-prometheus-exporter
 
-## Enable Prometheus on NGINX Edge Servers
+### Enable Prometheus on NGINX Edge Servers
 
-## Install Prometheus
+### Install Prometheus
 1. Install Prometheus on Ubuntu 22 LTS as docker container
 
 - [Return to Table of Contents](#Table_of_Contents)
