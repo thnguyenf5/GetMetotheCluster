@@ -48,6 +48,9 @@ Client Desktop
 - [NGINX+ Edge L4 configuration](#NGINX_Edge_L4_configuration)
 - [NGINX+ HA configurations](#NGINX_HA_configurations)
 - [NGINX Management Suite](#NGINX_Management_Suite)
+- [Multiple NGINX Ingress Controllers Deployment](#Multiple_NGINX_Ingresses)
+- [NGINX Ingress Controllers and Istio Service Mesh integration](#NGINX_Ingress_with_Istio_Service_Mesh)
+- [NGINX Observability with Prometheus and Grafana](Observability_with_Prometheus_and_Grafana_NGINX_EDGE)
 
 
 ---
@@ -1389,7 +1392,7 @@ curl -k -u admin:Vm8asdfjk3e9r52j23khqgfakaG https://10.1.1.12/api/platform/v1/s
 - https://10.1.1.12/ui/instances
 
 
-## OPTIONAL - Multiple Ingresses
+## Multiple_NGINX_Ingresses
 ### Online Boutique App
 > For additional documentation:
 - https://github.com/GoogleCloudPlatform/microservices-demo
@@ -1722,7 +1725,24 @@ ping -c 2 nginx-ingress-svc.nginx-ingress.svc.cluster.local
 ```shell
 ping -c 2 online-boutique-nginx-ingress-svc.online-boutique-nginx-ingress.svc.cluster.local
 ```
+3. Remove existing stream.d L4 configurations
+4. Update nginx.conf configuration
+```shell
 
+
+```
+5. Create HTTP L7 configurations
+```shell
+
+```
+6. 
+7. Confirm nginx syntax and reload
+```shell
+sudo nginx -t && sudo nginx -s reload
+```
+
+
+## NGINX_Ingress_with_Istio_Service_Mesh
 ### Deploy NGINX Ingress Container with Istio
 > For more information see:
 - https://docs.nginx.com/nginx-ingress-controller/tutorials/nginx-ingress-istio/
@@ -1731,7 +1751,7 @@ ping -c 2 online-boutique-nginx-ingress-svc.online-boutique-nginx-ingress.svc.cl
 - https://istio.io/latest/docs/setup/additional-setup/config-profiles/ 
 
 ### Deploy Istio
-1. Dowload Istio package
+1. On K8s control node, download Istio package
 ```shell
 curl -L https://istio.io/downloadIstio | sh -
 ```
@@ -1766,7 +1786,7 @@ kubectl get services --all-namespaces
 ```
 
 ### Install new NGINX Ingress for Istio
-1. make directory for istio nginx ingress manifest
+1. make directory for istio nginx ingress deployment
 ```shell
 mkdir istio-nginx-ingress
 ```
@@ -2085,4 +2105,16 @@ server {
 sudo nginx -t && sudo nginx -s reload
 
 
+## Observability_with_Prometheus_and_Grafana_NGINX_EDGE
+
+
+
+https://www.nginx.com/blog/how-to-visualize-nginx-plus-with-prometheus-and-grafana/
+
+https://github.com/nginxinc/nginx-prometheus-exporter
+
+## Enable Prometheus on NGINX Edge Servers
+
+## Install Prometheus
+1. Install Prometheus on Ubuntu 22 LTS as docker container
 
