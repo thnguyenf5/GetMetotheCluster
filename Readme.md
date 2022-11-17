@@ -2535,6 +2535,7 @@ http://10.1.1.14:3000
 - Click on "Data Sources".
 - Click on "Add data source".
 - Select "Prometheus" as the type.
+- Give the Data Source a key name - "Prometheus for NGINX+ Edge"
 2. Add central-prometheus01.f5.local as the Prometheus server
 - Set the appropriate Prometheus server URL - http://10.1.1.13:9090
 - Adjust other data source settings as desired (for example, choosing the right Access method).  In the lab environment - no other options were required.
