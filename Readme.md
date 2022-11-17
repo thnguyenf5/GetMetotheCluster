@@ -2274,8 +2274,7 @@ sudo nginx -t && sudo nginx -s reload
 - [Return to Table of Contents](#Table_of_Contents)
 ---
 ## Observability_with_Prometheus_and_Grafana_NGINX_EDGE
-> work in progress
-
+> In this section, you will configure the NGINX+ Edge servers to send metrics to a dedicated Prometheus server by installing some additional server packages. You will then setup the Prometheus server to target the NGINX+ Edge servers to collect the metrics.  Next, you will deploy a Grafana server and setup the Grafana server to utilize the Prometheus server as a datasource.  Finally, you will setup a Grafana dashboard to visualize the data.  
 
 https://www.nginx.com/blog/how-to-visualize-nginx-plus-with-prometheus-and-grafana/
 
@@ -2562,6 +2561,8 @@ https://grafana.com/grafana/dashboards/12930-nginx/
 - [Return to Table of Contents](#Table_of_Contents)
 ---
 ## Observability_with_Prometheus_and_Grafana_NGINX_Ingress
+
+> Work in Progress
 
 https://www.nginx.com/resources/videos/nginx-plus-kubernetes-and-prometheus-gain-insights-into-your-ingress-controller/
 
