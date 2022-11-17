@@ -1432,6 +1432,7 @@ curl -k -u admin:Vm8asdfjk3e9r52j23khqgfakaG https://10.1.1.12/api/platform/v1/s
 ---
 ## Multiple_NGINX_Ingresses
 >This part of the lab will change the initial NGINX+ Edge Server deployment scenario from an L4 configuration with a single NGINX+ Ingress deployment.  In this optional section, you will learn how to deploy multiple NGINX+ Ingresses running inside of a single cluster in a new namespace.  This will allow additional isolation of resources but will require a change of the NGINX+ Edge Server deployment to switch from an L4 configuration to an L7 configuration.  We will also be deploying a new application in its own dedicated namespace to utilize the new NGINX+ Ingress deployment. 
+
 ![L7-Conceptual](images/L7-conceptual.png)
 ### Online Boutique App
 > For additional documentation:
@@ -2280,12 +2281,299 @@ https://www.nginx.com/blog/how-to-visualize-nginx-plus-with-prometheus-and-grafa
 
 https://github.com/nginxinc/nginx-prometheus-exporter
 
+https://docs.nginx.com/nginx/admin-guide/dynamic-modules/nginscript/ 
+
+https://docs.docker.com/engine/install/ubuntu/
+
+https://prometheus.io/docs/visualization/grafana/#creating-a-prometheus-data-source
+
+### Install NJS module and the Prometheus Module on NGINX Edge Servers
+1. Log into nginx01 as user01
+```shell
+su - user01
+```
+2. Install NGINX JavaScript module (njs) and the Prometheus Module
+```shell
+sudo apt-get install nginx-plus-module-njs
+sudo apt-get install nginx-plus-module-prometheus
+```
+3. Repeat on nginx02 and nginx03
+
+### Install NJS module on NGINX Edge Servers
+1. Log into nginx01 as user01
+```shell
+su - user01
+```
+2. Make the following updates tot the /etc/nginx/nginx.conf:
+- load_module NJS in the top-level ("main") context
+- ncrease the size of the buffer for storing response bodies from subrequests  in the http block
+```shell
+sudo nano /etc/nginx/nginx.conf
+```
+```shell
+user  nginx;
+worker_processes  auto;
+
+error_log  /var/log/nginx/error.log notice;
+pid        /var/run/nginx.pid;
+
+load_module modules/ngx_http_js_module.so;
+
+events {
+    worker_connections  1024;
+}
+
+#include /etc/nginx/stream.d/*.conf;
+
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+
+    access_log  /var/log/nginx/access.log  main;
+
+    sendfile        on;
+    #tcp_nopush     on;
+
+    keepalive_timeout  65;
+
+    #gzip  on;
+
+    subrequest_output_buffer_size 32k;
+    
+    include /etc/nginx/conf.d/*.conf;
+    include /etc/nginx/http.d/*/*.conf;
+}
+
+
+# TCP/UDP proxy and load balancing block
+#
+#stream {
+    # Example configuration for TCP load balancing
+
+    #upstream stream_backend {
+    #    zone tcp_servers 64k;
+    #    server backend1.example.com:12345;
+    #    server backend2.example.com:12345;
+    #}
+
+    #server {
+    #    listen 12345;
+    #    status_zone tcp_server;
+    #    proxy_pass stream_backend;
+    #}
+#}
+```
+3. Update the /etc/nginx/conf.d/default.conf file to import the prometheus NJS code and add the prometheus metrics uri.  
+```shell
+sudo nano /etc/nginx/conf.d/default.conf
+```
+
+```shell
+js_import /usr/share/nginx-plus-module-prometheus/prometheus.js;
+
+server {
+    listen       8080 default_server;
+    server_name  localhost;
+
+    #access_log  /var/log/nginx/host.access.log  main;
+
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+    }
+
+    #error_page  404              /404.html;
+
+    # redirect server error pages to the static page /50x.html
+    #
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+
+    # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+    #
+    #location ~ \.php$ {
+    #    proxy_pass   http://127.0.0.1;
+    #}
+
+    # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+    #
+    #location ~ \.php$ {
+    #    root           html;
+    #    fastcgi_pass   127.0.0.1:9000;
+    #    fastcgi_index  index.php;
+    #    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
+    #    include        fastcgi_params;
+    #}
+
+    # deny access to .htaccess files, if Apache's document root
+    # concurs with nginx's one
+    #
+    #location ~ /\.ht {
+    #    deny  all;
+    #}
+
+    # enable /api/ location with appropriate access control in order
+    # to make use of NGINX Plus API
+    #
+    location /api/ {
+        api write=on;
+    #    allow 127.0.0.1;
+    #    deny all;
+    }
+
+    # enable NGINX Plus Dashboard; requires /api/ location to be
+    # enabled and appropriate access control for remote access
+    #
+    location = /dashboard.html {
+        root /usr/share/nginx/html;
+    }
+
+    # enable Prometheus metrics; requires /api/ location to be 
+    # enabled and appropriate access control for remote access
+    location = /metrics {
+        js_content prometheus.metrics;
+    }
+}
+```
+4. Check nginx syntax and reload
+```shell
+sudo nginx -t && sudo nginx -s reload
+```
+5. Sync nginx config
+```shell
+sudo nginx-sync.sh
+```
+### Install Docker on Prometheus and Grafana server
+1. Setup docker repository on central-prometheus01.f5.local as user01
+```shell
+sudo apt-get update
+
+sudo apt-get install \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release
+```
+2. Add docker's official GPG key:
+```shell
+sudo mkdir -p /etc/apt/keyrings
+
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+```
+3. Setup repository:
+```shell
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+```
+4. Update apt package index:
+```shell
+sudo apt-get update
+```
+5. Install latest Docker Enginer, containerd and Docker Compose
+```shell
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin -y
+```
+6. Confirm Docker Engine installation is successful. You will see a message stating "Hello from Docker!"
+```shell
+sudo docker run hello-world
+```
+7. Repeat on Grafana server
+
+### Setup Prometheus server
+1. Create your own local prometheus configuration file in the user01 home directory
+```shell
+sudo nano /etc/prometheus/prometheus.yml
+```
+```
+global:
+  scrape_interval: 15s 
+  external_labels:
+    monitor: 'codelab-monitor'
+scrape_configs:  
+  - job_name: 'nginx-edge-prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['10.1.1.4:8080', '10.1.1.5:8080', '10.1.1.6:8080']
+        labels:
+          group: 'nginx-edge-cluster'
+```
+2. Create directory for prometheus 
+```shell
+sudo mkdir /etc/prometheus
+```
+3. Deploy prometheus docker container, expose it on port 9090 and load the prometheus configuration yaml file.
+```shell
+sudo docker run --network="host" -d -p 9090:9090 -v /home/user01/prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus
+```
+4. From the client desktop browser, browse to the following page to confirm that the server is working:
+http://10.1.1.13:9090
+5. Verify that Prometheus is accessing the feed of NGINX Plus metrics. Click the globe icon to the left of the  Execute  button in the upper right corner of the window. You should see nginxplus metrics
+6. Verify that all of the NGINX+ edge servers are healthy.  
+- Click Status on the top tool bar to the left of Help
+- Select Targets from the dropdown
+- You will be directed to (http://10.1.1.13:9090/targets?search=) and you should see the state of all three NGINX+ edge servers in an Up state.
+
+### Deploy Grafana server
+1. Deploy Grafana docker container and expose it on port 3000
+```shell
+sudo docker run -d -p 3000:3000 grafana/grafana
+```
+2. From the client desktop browser, browse to the following page to confirm that the grafana server is working:
+http://10.1.1.14:3000 
+3. Login using admin/admin
+
+### Create a Prometheus data source in Grafana
+1. From the Grafana web page
+- Click on the "cogwheel" in the sidebar to open the Configuration menu.
+- Click on "Data Sources".
+- Click on "Add data source".
+- Select "Prometheus" as the type.
+2. Add central-prometheus01.f5.local as the Prometheus server
+- Set the appropriate Prometheus server URL - http://10.1.1.13:9090
+- Adjust other data source settings as desired (for example, choosing the right Access method).  In the lab environment - no other options were required.
+- Click "Save & Test" to save the new data source.
+The green box with a checkmark and the Data source is working message indicate that Grafana has successfully connected to the Prometheus server.
+
+### Create NGINX Plus Graphs in Grafana
+1. To build a Grafana graph:
+- Click the plus sign (+) in the navigation bar at the left side of the page. 
+- Select Dashboard on the Create drop‑down menu.
+2. Click the Add an empty panel box.
+3. On the New dashboard/Edit Panel page that appears, verify that Prometheus appears in the Data source field of the Query tab in the bottom half of the page. If not, select Prometheus from the drop‑down menu.
+4. Enter nginx in the  Metrics browser >  field. A list of NGINX Plus metrics appears.
+5. Select a metric from the list (in the demo we select nginxplus_connections_active). To select another metric, click the  + Query  button and select another metric in the new  Metrics browser >  field (in the demo, we select nginxplus_connections_idle).
+6. Click the "refresh" (two arrows forming a circle) icon above the graph in the upper half of the page, and results start to appear on the graph.
+
+How to import external grafana dashboards:
+https://grafana.com/docs/grafana/v9.0/dashboards/export-import/
+
+Sample Grafana dashboards:
+https://grafana.com/grafana/dashboards/12930-nginx/
+
+
+- [Return to Table of Contents](#Table_of_Contents)
+---
+## Observability_with_Prometheus_and_Grafana_NGINX_Ingress
+
 https://www.nginx.com/resources/videos/nginx-plus-kubernetes-and-prometheus-gain-insights-into-your-ingress-controller/
 
-### Enable Prometheus on NGINX Edge Servers
+https://grafana.com/grafana/dashboards/14314-kubernetes-nginx-ingress-controller-nextgen-devops-nirvana/
 
-### Install Prometheus
-1. Install Prometheus on Ubuntu 22 LTS as docker container
+https://github.com/nginxinc/kubernetes-ingress/tree/main/grafana
+
+https://grafana.com/grafana/dashboards/12930-nginx/
+
+
+
+
 
 - [Return to Table of Contents](#Table_of_Contents)
 ---

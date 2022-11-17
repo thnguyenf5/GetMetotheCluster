@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 15s 
+  external_labels:
+    monitor: 'codelab-monitor'
+scrape_configs:  
+  - job_name: 'nginx-edge-prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['10.1.1.4:8080', '10.1.1.5:8080', '10.1.1.6:8080']
+        labels:
+          group: 'nginx-edge-cluster'
