@@ -2487,9 +2487,9 @@ sudo docker run hello-world
 7. Repeat on Grafana server
 
 ### Setup Prometheus server
-1. Create your own local prometheus configuration file in the user01 home directory
+1. Create your own local prometheus configuration file in the user01 home directory.  The targets array will be populated with the NGINX+ IP addresses and ports.  
 ```shell
-sudo nano /etc/prometheus/prometheus.yml
+sudo nano /home/user01/prometheus.yml
 ```
 ```
 global:
