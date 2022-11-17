@@ -1756,7 +1756,7 @@ spec:
 ```shell
 kubectl apply -f online-boutique-virtualserver.yaml
 ```
-### Modify L4 NGINX+ Edge server to by L7 aware NGINX+ Edge server
+### Modify L4 NGINX+ Edge server to be L7 aware NGINX+ Edge server
 
 1. Confirm connectivity to original default ingress
 ```shell
@@ -1955,11 +1955,11 @@ kubectl get services --all-namespaces
 ### Install new NGINX+ Ingress for Istio
 1. make directory for istio nginx ingress deployment
 ```shell
-mkdir istio-nginx-ingress
+mkdir /home/user01/istio-nginx-ingress
 ```
 2. change directory
 ```shell
-cd istio-nginx-ingress
+cd /home/user01/istio-nginx-ingress
 ```
 3. create namespace in NS and SA file.
 ```shell
@@ -2211,8 +2211,10 @@ kubectl get services --all-namespaces -o wide
 ```
 ### Expose Bookinfo Application via Ingress 
 > you will use IngressClassName spec to define the use of the new Ingress Controller deployment
-1. Create bookinfo-ingress-virtualserver.yaml
+1. Create bookinfo-ingress-virtualserver.yaml in a new directory
 ```shell
+mkdir /home/user01/bookinfo-app
+cd /home/user01/bookinfo-app
 nano bookinfo-ingress-virtualserver.yaml
 ```
 2. Edit Contents of manifest
@@ -2243,18 +2245,25 @@ kubectl apply -f bookinfo-ingress-virtualserver.yaml
 kubectl get virtualserver --all-namespaces
 ```
 ### Update NGINX+ L7 configuration
-1. Create new directory inside /etc/nginx/http.d
+1. Log into nginxedge01.f5.local as user01
+2. Create new directory inside /etc/nginx/http.d
 ```shell
 sudo mkdir /etc/nginx/http.d/bookinfo
 ```
-2. Create new upstream.conf file
+3. Create new upstream.conf file
+```shell
+nano upstream.conf
+```
 ```shell
 upstream istio-nginx-ingress-svc {
   zone istio-nginx-ingress 256k;
   server istio-nginx-ingress-svc.istio-nginx-ingress.svc.cluster.local service=http resolve;
 }
 ```
-3. Create new server.conf file
+4. Create new server.conf file
+```shell
+nano server.conf
+```
 ```shell
 server {
     server_name bookinfo.f5.local;
@@ -2267,10 +2276,19 @@ server {
     }
 }
 ```
-4. Validate NGINX config and reload
+5. Validate NGINX config and reload
 ```
 sudo nginx -t && sudo nginx -s reload
 ```
+6. Sync configurations
+```
+nginx-sync.sh
+```
+7. Validate the configurations from the client browser
+- Browse to http://10.1.1.4:8080/dashboard.html
+- Validate that the upstreams are healthy
+- In a new tab, browse to http://bookinfo.f5.local.  Select test user and refresh the site.  Check back on the live monitoring dashboard to confirm that the istio ingress metrics have increased above 0.
+
 - [Return to Table of Contents](#Table_of_Contents)
 ---
 ## Observability_with_Prometheus_and_Grafana_NGINX_EDGE
@@ -2510,7 +2528,7 @@ sudo mkdir /etc/prometheus
 ```
 3. Deploy prometheus docker container, expose it on port 9090 and load the prometheus configuration yaml file.
 ```shell
-sudo docker run --network="host" -d -p 9090:9090 -v /home/user01/prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus
+sudo docker run --restart=always --network="host" -d -p 9090:9090 -v /home/user01/prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus
 ```
 4. From the client desktop browser, browse to the following page to confirm that the server is working:
 http://10.1.1.13:9090
@@ -2523,7 +2541,7 @@ http://10.1.1.13:9090
 ### Deploy Grafana server
 1. Deploy Grafana docker container and expose it on port 3000
 ```shell
-sudo docker run -d -p 3000:3000 grafana/grafana
+sudo docker run --restart=always -d -p 3000:3000 grafana/grafana
 ```
 2. From the client desktop browser, browse to the following page to confirm that the grafana server is working:
 http://10.1.1.14:3000 
