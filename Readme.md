@@ -2565,6 +2565,7 @@ https://grafana.com/grafana/dashboards/12930-nginx/
 
 > Work in Progress
 
+> In this section, you will be creating a new dedicated monitoring namespace to deploy Prometheus inside of the K8s cluster.  You will enable Prometheus to automatically discover new services with service discovery by creating RBAC rules for Prometheus. You will also create a persistance storage mount for Prometheus to store its metrics.  Next you will update the NGINX Ingress deployments to enable prometheus metrics.  Finally you will expose the Prometheus deployment externaly so that the centralized Grafana instance can integrate with the new K8s Prometheus deployment.  
 https://www.nginx.com/resources/videos/nginx-plus-kubernetes-and-prometheus-gain-insights-into-your-ingress-controller/
 
 https://grafana.com/grafana/dashboards/14314-kubernetes-nginx-ingress-controller-nextgen-devops-nirvana/
@@ -2573,8 +2574,323 @@ https://github.com/nginxinc/kubernetes-ingress/tree/main/grafana
 
 https://grafana.com/grafana/dashboards/12930-nginx/
 
+https://acloudguru.com/blog/engineering/running-prometheus-on-kubernetes 
 
+https://devopscube.com/setup-prometheus-monitoring-on-kubernetes/
 
+https://www.metricfire.com/blog/how-to-deploy-prometheus-on-kubernetes/
+
+## Deploying Prometheus inside the Kubernetes cluster
+
+1. As user01 on k8scontrol01.f5.local, create folder for prometheus deployment
+```shell
+nano mkdir prometheus-monitoring
+cd prometheus-monitoring
+```
+2. Create manifest for prometheus namespace and apply.
+```shell
+nano monitoring-ns.yaml
+```
+```shell
+# CREATE NAMESPACE - Monitoring
+---
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: monitoring
+  labels:
+  - name: monitoring
+---
+```
+```shell
+kubectl apply -f monitoring-ns.yaml
+```
+3. Create RBAC manifest for prometheus.
+```shell
+nano prometheus-rbac.yaml
+```
+```shell
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus
+rules:
+- apiGroups: [""]
+  resources:
+  - nodes
+  - nodes/proxy
+  - services
+  - endpoints
+  - pods
+  verbs: ["get", "list", "watch"]
+- apiGroups:
+  - extensions
+  resources:
+  - ingresses
+  verbs: ["get", "list", "watch"]
+- nonResourceURLs: ["/metrics"]
+  verbs: ["get"]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: default
+  namespace: monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: monitoring
+```
+```shell
+kubectl apply -f prometheus-rbac.yaml
+```
+4. Create configmap for prometheus
+```shell
+nano prometheus-configmap.yaml
+```
+```shell
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-server-conf
+  namespace: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 5s
+      evaluation_interval: 5s
+    rule_files:
+      #- /etc/prometheus/prometheus.rules
+    # Alertmanager configuration
+    alerting:
+      alertmanagers:
+      - scheme: http
+        static_configs:
+        - targets:
+          # - "alertmanager.monitoring.svc:9093"
+    scrape_configs:
+      - job_name: 'node-exporter'
+        kubernetes_sd_configs:
+          - role: endpoints
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_endpoints_name]
+          regex: 'node-exporter'
+          action: keep
+      - job_name: 'kubernetes-apiservers'
+        kubernetes_sd_configs:
+        - role: endpoints
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+          action: keep
+          regex: default;kubernetes;https
+      - job_name: 'kubernetes-nodes'
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        kubernetes_sd_configs:
+        - role: node
+        relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+        - target_label: __address__
+          replacement: kubernetes.default.svc:443
+        - source_labels: [__meta_kubernetes_node_name]
+          regex: (.+)
+          target_label: __metrics_path__
+          replacement: /api/v1/nodes/${1}/proxy/metrics     
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:
+        - role: pod
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+          action: keep
+          regex: true
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+          action: replace
+          target_label: __metrics_path__
+          regex: (.+)
+        - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+          action: replace
+          regex: ([^:]+)(?::\d+)?;(\d+)
+          replacement: $1:$2
+          target_label: __address__
+        - action: labelmap
+          regex: __meta_kubernetes_pod_label_(.+)
+        - source_labels: [__meta_kubernetes_namespace]
+          action: replace
+          target_label: kubernetes_namespace
+        - source_labels: [__meta_kubernetes_pod_name]
+          action: replace
+          target_label: kubernetes_pod_name
+      - job_name: 'kube-state-metrics'
+        static_configs:
+          - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
+      - job_name: 'kubernetes-cadvisor'
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        kubernetes_sd_configs:
+        - role: node
+        relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+        - target_label: __address__
+          replacement: kubernetes.default.svc:443
+        - source_labels: [__meta_kubernetes_node_name]
+          regex: (.+)
+          target_label: __metrics_path__
+          replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+      - job_name: 'kubernetes-service-endpoints'
+        kubernetes_sd_configs:
+        - role: endpoints
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+          action: keep
+          regex: true
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+          action: replace
+          target_label: __scheme__
+          regex: (https?)
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+          action: replace
+          target_label: __metrics_path__
+          regex: (.+)
+        - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+          action: replace
+          target_label: __address__
+          regex: ([^:]+)(?::\d+)?;(\d+)
+          replacement: $1:$2
+        - action: labelmap
+          regex: __meta_kubernetes_service_label_(.+)
+        - source_labels: [__meta_kubernetes_namespace]
+          action: replace
+          target_label: kubernetes_namespace
+        - source_labels: [__meta_kubernetes_service_name]
+          action: replace
+          target_label: kubernetes_name
+```
+```shell
+kubectl apply -f prometheus-configmap.yaml
+```
+5. Create perisistent storage volume for prometheus metrics
+```shell
+nano prometheus-pvc.yaml
+```
+```shell
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data-pvc
+  namespace: monitoring
+  labels:
+    app: prometheus-server
+spec:
+ accessModes:
+   - ReadWriteOnce
+ resources:
+   requests:
+      storage: 4Gi
+```
+```shell
+kubectl apply -f prometheus-pvc.yaml
+```
+6. Create prometheus deployment
+```shell
+nano prometheus-deployment.yaml
+```
+```shell
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-deployment
+  namespace: monitoring
+  labels:
+    app: prometheus-server
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: prometheus-server
+  template:
+    metadata:
+      labels:
+        app: prometheus-server
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--storage.tsdb.path=/prometheus_data/"
+          ports:
+            - containerPort: 9090
+          volumeMounts:
+            - name: prometheus-config-volume
+              mountPath: /etc/prometheus/
+            - name: prometheus-storage-volume
+              mountPath: /prometheus_data/
+      volumes:
+        - name: prometheus-config-volume
+          configMap:
+            defaultMode: 420
+            name: prometheus-server-conf
+        - name: prometheus-storage-volume
+          PersistentVolumeClaim:
+            claimName: prometheus-data-pvc
+```
+```shell
+kubectl apply -f prometheus-deployment.yaml
+```
+7. Determine health of the pods
+```shell
+kubectl get pods -n monitoring -o wide
+```
+### Expose Prometheus external to the K8s cluster
+1. Create a prometheus node port service
+```shell
+nano prometheus-svc.yaml
+```
+```shell
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-svc
+  namespace: monitoring
+spec:
+  selector:
+    app: prometheus
+  type: NodePort
+  ports:
+   - port: 9090
+     targetPort: 9090
+     nodePort: 31090
+```
+```shell
+kubectl apply -f prometheus-svc.yaml
+```
+2. Determine health of prometheus deployment
+```shell
+kubectl get services -n monitoring -o wide
+```
+3. Browse to the prometheus deployment inside K8s http://10.1.1.8:31090 (any worker node IP with port 31090 will work)
+4. Browse to the targets to see if any endpoints are enabled for metrics - there should be none as we have not enabled any of the NGINX Ingress Controller deployment manifiest to enable prometheus metrics collection
+
+### Enable Prometheus metrics on NGINX Ingress Controllers
 
 
 - [Return to Table of Contents](#Table_of_Contents)
