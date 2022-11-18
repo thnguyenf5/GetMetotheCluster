@@ -3149,8 +3149,8 @@ spec:
 - Click on "Add data source".
 - Select "Prometheus" as the type.
 - Give the Data Source a key name - "Prometheus-NGINX-Ingress-Controllers"
-2. Add central-prometheus01.f5.local as the Prometheus server
-- Set the appropriate Prometheus server URL - http://10.1.1.8:31090
+2. Add the Prometheus K8's pods as the new data source
+- Set the appropriate Prometheus server URL using the nodeport service - http://10.1.1.8:31090
 - Adjust other data source settings as desired (for example, choosing the right Access method).  In the lab environment - no other options were required.
 - Click "Save & Test" to save the new data source.
 The green box with a checkmark and the Data source is working message indicate that Grafana has successfully connected to the Prometheus server.
