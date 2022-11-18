@@ -2566,8 +2566,8 @@ The green box with a checkmark and the Data source is working message indicate t
 - Select Dashboard on the Create drop‑down menu.
 2. Click the Add an empty panel box.
 3. On the New dashboard/Edit Panel page that appears, verify that Prometheus appears in the Data source field of the Query tab in the bottom half of the page. If not, select Prometheus from the drop‑down menu.
-4. Enter nginx in the  Metrics browser >  field. A list of NGINX Plus metrics appears.
-5. Select a metric from the list (in the demo we select nginxplus_connections_active). To select another metric, click the  + Query  button and select another metric in the new  Metrics browser >  field (in the demo, we select nginxplus_connections_idle).
+4. Enter nginx in the Metrics browser >  field. A list of NGINX Plus metrics appears.
+5. Select a metric from the list (in the demo we select nginxplus_connections_active). To select another metric, click the + Query button and select another metric in the new Metrics browser > field (in the demo, we select nginxplus_connections_idle).
 6. Click the "refresh" (two arrows forming a circle) icon above the graph in the upper half of the page, and results start to appear on the graph.
 
 How to import external grafana dashboards:
@@ -2583,42 +2583,33 @@ https://grafana.com/grafana/dashboards/12930-nginx/
 
 > Work in Progress
 
-> In this section, you will be creating a new dedicated monitoring namespace to deploy Prometheus inside of the K8s cluster.  You will enable Prometheus to automatically discover new services with service discovery by creating RBAC rules for Prometheus. You will also create a persistance storage mount for Prometheus to store its metrics.  Next you will update the NGINX Ingress deployments to enable prometheus metrics.  Finally you will expose the Prometheus deployment externaly so that the centralized Grafana instance can integrate with the new K8s Prometheus deployment.  
+> In this section, you will be creating a new dedicated monitoring namespace to deploy Prometheus inside of the K8s cluster.  You will enable Prometheus to automatically discover new services with service discovery by creating RBAC rules for Prometheus.  Next you will update the NGINX Ingress deployments to enable prometheus metrics.  Note: the promethus deployment will be writing to ephermal storage as, you will not be configuring peristent storage for this lab as is out of scope.  Finally you will expose the Prometheus deployment externaly so that the centralized Grafana instance can integrate with the new K8s Prometheus deployment.  
 https://www.nginx.com/resources/videos/nginx-plus-kubernetes-and-prometheus-gain-insights-into-your-ingress-controller/
 
 https://grafana.com/grafana/dashboards/14314-kubernetes-nginx-ingress-controller-nextgen-devops-nirvana/
 
 https://github.com/nginxinc/kubernetes-ingress/tree/main/grafana
 
-https://grafana.com/grafana/dashboards/12930-nginx/
+
 
 https://acloudguru.com/blog/engineering/running-prometheus-on-kubernetes 
-
-https://devopscube.com/setup-prometheus-monitoring-on-kubernetes/
-
-https://www.metricfire.com/blog/how-to-deploy-prometheus-on-kubernetes/
 
 ## Deploying Prometheus inside the Kubernetes cluster
 
 1. As user01 on k8scontrol01.f5.local, create folder for prometheus deployment
 ```shell
-nano mkdir prometheus-monitoring
-cd prometheus-monitoring
+mkdir /home/user01/prometheus-monitoring
+cd /home/user01/prometheus-monitoring
 ```
 2. Create manifest for prometheus namespace and apply.
 ```shell
 nano monitoring-ns.yaml
 ```
 ```shell
-# CREATE NAMESPACE - Monitoring
----
-kind: Namespace
 apiVersion: v1
+kind: Namespace
 metadata:
-  name: monitoring
-  labels:
-  - name: monitoring
----
+  name: monitoring 
 ```
 ```shell
 kubectl apply -f monitoring-ns.yaml
@@ -2805,29 +2796,7 @@ data:
 ```shell
 kubectl apply -f prometheus-configmap.yaml
 ```
-5. Create perisistent storage volume for prometheus metrics
-```shell
-nano prometheus-pvc.yaml
-```
-```shell
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: prometheus-data-pvc
-  namespace: monitoring
-  labels:
-    app: prometheus-server
-spec:
- accessModes:
-   - ReadWriteOnce
- resources:
-   requests:
-      storage: 4Gi
-```
-```shell
-kubectl apply -f prometheus-pvc.yaml
-```
-6. Create prometheus deployment
+5. Create prometheus deployment
 ```shell
 nano prometheus-deployment.yaml
 ```
@@ -2868,13 +2837,12 @@ spec:
             defaultMode: 420
             name: prometheus-server-conf
         - name: prometheus-storage-volume
-          PersistentVolumeClaim:
-            claimName: prometheus-data-pvc
+          emptyDir: {}
 ```
 ```shell
 kubectl apply -f prometheus-deployment.yaml
 ```
-7. Determine health of the pods
+7. Determine health of the pods and make sure all of the pods are in a running state.
 ```shell
 kubectl get pods -n monitoring -o wide
 ```
@@ -2891,7 +2859,7 @@ metadata:
   namespace: monitoring
 spec:
   selector:
-    app: prometheus
+    app: prometheus-server
   type: NodePort
   ports:
    - port: 9090
@@ -2906,9 +2874,290 @@ kubectl apply -f prometheus-svc.yaml
 kubectl get services -n monitoring -o wide
 ```
 3. Browse to the prometheus deployment inside K8s http://10.1.1.8:31090 (any worker node IP with port 31090 will work)
-4. Browse to the targets to see if any endpoints are enabled for metrics - there should be none as we have not enabled any of the NGINX Ingress Controller deployment manifiest to enable prometheus metrics collection
+4. Click on the globe to the next of the execute button.  Type NGINX in the Metrics Explorer search field and you will see that no metrics are available.  You will configure those in the next part of the lab.  
+5. Browse to the targets to see data about the kubernetes environment.   
 
 ### Enable Prometheus metrics on NGINX Ingress Controllers
+1. Modify the default nginx ingress controller manifest to enable the following:
+- Uncomment the following annotations in the template block of the deployment manifest:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9113"
+    prometheus.io/scheme: http
+- Uncomment -enable-prometheus-metrics in the arguments block at the bottom of the deployment manifest
+```shell
+nano *****/*****/nginx-plus-ingress.yaml
+```
+```shell
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-ingress
+  namespace: nginx-ingress
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx-ingress
+  template:
+    metadata:
+      labels:
+        app: nginx-ingress
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9113"
+        prometheus.io/scheme: http
+    spec:
+      serviceAccountName: nginx-ingress
+      automountServiceAccountToken: true
+      imagePullSecrets:
+      - name: regcred
+      containers:
+      - image: private-registry.nginx.com/nginx-ic/nginx-plus-ingress:2.3.1
+        imagePullPolicy: IfNotPresent
+        name: nginx-plus-ingress
+        ports:
+        - name: http
+          containerPort: 80
+        - name: https
+          containerPort: 443
+        - name: readiness-port
+          containerPort: 8081
+        - name: prometheus
+          containerPort: 9113
+        readinessProbe:
+          httpGet:
+            path: /nginx-ready
+            port: readiness-port
+          periodSeconds: 1
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+         #limits:
+         #  cpu: "1"
+         #  memory: "1Gi"
+        securityContext:
+          allowPrivilegeEscalation: true
+          runAsUser: 101 #nginx
+          runAsNonRoot: true
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - NET_BIND_SERVICE
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        args:
+          - -nginx-plus
+          - -nginx-configmaps=$(POD_NAMESPACE)/nginx-config
+          - -default-server-tls-secret=$(POD_NAMESPACE)/default-server-secret
+         #- -enable-cert-manager
+         #- -enable-external-dns
+         #- -enable-app-protect
+         #- -enable-app-protect-dos
+         #- -v=3 # Enables extensive logging. Useful for troubleshooting.
+         #- -report-ingress-status
+         #- -external-service=nginx-ingress
+          - -enable-prometheus-metrics
+         #- -global-configuration=$(POD_NAMESPACE)/nginx-configuration
+```
+```shell
+kubectl apply -f *****/*****/nginx-plus-ingress.yaml
+```
+2. Return to your client browser and again search for the Metrics Explorer for NGINX.  You will now see nginx_ingress_controller metrics available.
+3. Repeat the process for your other Ingress Controller Manifests.  Sample manifest below:
+```shell
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-ingress
+  namespace: online-boutique-nginx-ingress 
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx-ingress
+  template:
+    metadata:
+      labels:
+        app: nginx-ingress
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9113"
+        prometheus.io/scheme: http
+    spec:
+      serviceAccountName: nginx-ingress
+      automountServiceAccountToken: true
+      imagePullSecrets:
+      - name: regcred
+      containers:
+      - image: private-registry.nginx.com/nginx-ic/nginx-plus-ingress:2.3.1
+        imagePullPolicy: IfNotPresent
+        name: online-boutique-nginx-plus-ingress
+        ports:
+        - name: http
+          containerPort: 80
+        - name: https
+          containerPort: 443
+        - name: readiness-port
+          containerPort: 8081
+        - name: prometheus
+          containerPort: 9113
+        readinessProbe:
+          httpGet:
+            path: /nginx-ready
+            port: readiness-port
+          periodSeconds: 1
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+         #limits:
+         #  cpu: "1"
+         #  memory: "1Gi"
+        securityContext:
+          allowPrivilegeEscalation: true
+          runAsUser: 101 #nginx
+          runAsNonRoot: true
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - NET_BIND_SERVICE
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        args:
+          - -nginx-plus
+          - -nginx-configmaps=$(POD_NAMESPACE)/nginx-config
+          - -default-server-tls-secret=$(POD_NAMESPACE)/default-server-secret
+          - -ingress-class=online-boutique-nginx
+         #- -enable-cert-manager
+         #- -enable-external-dns
+         #- -enable-app-protect
+         #- -enable-app-protect-dos
+         #- -v=3 # Enables extensive logging. Useful for troubleshooting.
+         #- -report-ingress-status
+         #- -external-service=nginx-ingress
+          - -enable-prometheus-metrics
+         #- -global-configuration=$(POD_NAMESPACE)/nginx-configuration
+```
+```shell
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-ingress
+  namespace: istio-nginx-ingress 
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx-ingress
+  template:
+    metadata:
+      labels:
+        app: nginx-ingress
+      annotations:
+        traffic.sidecar.istio.io/includeInboundPorts: ""
+        traffic.sidecar.istio.io/excludeInboundPorts: "80,443" 
+        traffic.sidecar.istio.io/excludeOutboundIPRanges: "10.1.1.0/24"
+        sidecar.istio.io/inject: 'true'
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9113"
+        prometheus.io/scheme: http
+    spec:
+      serviceAccountName: nginx-ingress
+      automountServiceAccountToken: true
+      imagePullSecrets:
+      - name: regcred
+      containers:
+      - image: private-registry.nginx.com/nginx-ic/nginx-plus-ingress:2.3.1
+        imagePullPolicy: IfNotPresent
+        name: istio-nginx-plus-ingress
+        ports:
+        - name: http
+          containerPort: 80
+        - name: https
+          containerPort: 443
+        - name: readiness-port
+          containerPort: 8081
+        - name: prometheus
+          containerPort: 9113
+        readinessProbe:
+          httpGet:
+            path: /nginx-ready
+            port: readiness-port
+          periodSeconds: 1
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+         #limits:
+         #  cpu: "1"
+         #  memory: "1Gi"
+        securityContext:
+          allowPrivilegeEscalation: true
+          runAsUser: 101 #nginx
+          runAsNonRoot: true
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - NET_BIND_SERVICE
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        args:
+          - -nginx-plus
+          - -nginx-configmaps=$(POD_NAMESPACE)/nginx-config
+          - -default-server-tls-secret=$(POD_NAMESPACE)/default-server-secret
+          - -ingress-class=istio-nginx
+         #- -enable-cert-manager
+         #- -enable-external-dns
+         #- -enable-app-protect
+         #- -enable-app-protect-dos
+         #- -v=3 # Enables extensive logging. Useful for troubleshooting.
+         #- -report-ingress-status
+         #- -external-service=nginx-ingress
+          - -enable-prometheus-metrics
+         #- -global-configuration=$(POD_NAMESPACE)/nginx-configuration
+```
+### Update Grafana for new Prometheus data source and build new dashboard
+
+1. From the Grafana web page (http://10.1.1.14:3000) (admin/admin)
+- Click on the "cogwheel" in the sidebar to open the Configuration menu.
+- Click on "Data Sources".
+- Click on "Add data source".
+- Select "Prometheus" as the type.
+- Give the Data Source a key name - "Prometheus-NGINX-Ingress-Controllers"
+2. Add central-prometheus01.f5.local as the Prometheus server
+- Set the appropriate Prometheus server URL - http://10.1.1.8:31090
+- Adjust other data source settings as desired (for example, choosing the right Access method).  In the lab environment - no other options were required.
+- Click "Save & Test" to save the new data source.
+The green box with a checkmark and the Data source is working message indicate that Grafana has successfully connected to the Prometheus server.
+3. Import a new dashboard
+- On the right hand side, hover on dashboard icon and click import in the flyout menu.
+- You can  import a dashboard using the following ID: 14314 and selecting the new Prometheus data source for the NGINX+ Ingress controllers.
+- You can also import the dashboard from the official NGINX+ github found at: https://github.com/nginxinc/kubernetes-ingress/blob/main/grafana/NGINXPlusICDashboard.json
 
 
 - [Return to Table of Contents](#Table_of_Contents)
